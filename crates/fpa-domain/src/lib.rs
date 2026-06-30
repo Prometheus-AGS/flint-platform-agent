@@ -6,7 +6,9 @@
 //! See `CLAUDE.md` → "Architecture: The Absolute Dependency Rule".
 
 pub mod ids;
+pub mod project;
 pub mod task;
 
-pub use ids::{OperatorId, SessionId, TaskId};
+pub use ids::{ApplicationId, OperatorId, ProjectId, SessionId, SubAgentId, TaskId};
+pub use project::{Project, SCHEMA_VERSION};
 pub use task::{AdminTask, TaskState};

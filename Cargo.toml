@@ -39,6 +39,8 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 # --- HTTP client + JWT (consume flint-gate only; matches flint-gate's own stack) ---
 reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
 jsonwebtoken = "9"
+# --- JSON Schema generation (optional, behind a feature in domain) ---
+schemars = "1"
 futures = "0.3"
 arc-swap = "1"
 uuid = { version = "1", features = ["v4", "serde"] }

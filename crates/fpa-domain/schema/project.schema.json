@@ -1,0 +1,242 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Project",
+  "description": "The Project aggregate.",
+  "type": "object",
+  "properties": {
+    "applications": {
+      "description": "Application definitions owned by the project.",
+      "type": "array",
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/ApplicationDef"
+      }
+    },
+    "entity_meta": {
+      "description": "References into the entity-management model (opaque identifiers).",
+      "type": "array",
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/EntityMetaRef"
+      }
+    },
+    "id": {
+      "$ref": "#/$defs/ProjectId"
+    },
+    "name": {
+      "type": "string"
+    },
+    "realtime": {
+      "description": "Realtime configuration for the project.",
+      "$ref": "#/$defs/RealtimeParams",
+      "default": {
+        "config": null,
+        "enabled": false
+      }
+    },
+    "schema_version": {
+      "description": "Artifact schema version (see [`SCHEMA_VERSION`]).",
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0
+    },
+    "schemas": {
+      "description": "Database/schema definitions (carry A2UI generation hints).",
+      "type": "array",
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/SchemaDef"
+      }
+    },
+    "sub_agents": {
+      "description": "Sub-agents defined by the project.",
+      "type": "array",
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/SubAgentDef"
+      }
+    }
+  },
+  "required": [
+    "id",
+    "schema_version",
+    "name"
+  ],
+  "$defs": {
+    "ApplicationDef": {
+      "description": "An application definition: composed UI + modules + plugins.",
+      "type": "object",
+      "properties": {
+        "components": {
+          "description": "A2UI components composing this application (forge registry refs).",
+          "type": "array",
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ComponentRef"
+          }
+        },
+        "id": {
+          "$ref": "#/$defs/ApplicationId"
+        },
+        "modules": {
+          "description": "Application modules (logical grouping; opaque metadata this phase).",
+          "type": "array",
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ModuleRef"
+          }
+        },
+        "name": {
+          "type": "string"
+        },
+        "plugins": {
+          "description": "WASM component/plugin references (resolved by the Kiln runtime).",
+          "type": "array",
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/PluginRef"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ]
+    },
+    "ApplicationId": {
+      "description": "Identifies an application definition within a project.",
+      "type": "string",
+      "format": "uuid"
+    },
+    "ComponentRef": {
+      "description": "A reference to an A2UI component held in the forge registry.",
+      "type": "object",
+      "properties": {
+        "component": {
+          "description": "Registry component id (forge `RFC-FORGE-A2UI-001`).",
+          "$ref": "#/$defs/RegistryComponentId"
+        },
+        "version": {
+          "description": "Pinned registry version of the component.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "component",
+        "version"
+      ]
+    },
+    "EntityMetaRef": {
+      "description": "An opaque reference into the `prometheus-entity-management` model.\n\nThat project is a TypeScript workspace, not a Rust crate, so this carries\nonly an identifier — no Rust dependency on it.",
+      "type": "string"
+    },
+    "ModuleRef": {
+      "description": "A reference to an application module.",
+      "type": "object",
+      "properties": {
+        "metadata": {
+          "description": "Free-form module metadata (typed per module kind in a later phase).",
+          "default": null
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "PluginRef": {
+      "description": "A reference to a WASM component/plugin.",
+      "type": "object",
+      "properties": {
+        "locator": {
+          "description": "Locator for the component (OCI/IPFS/registry — resolved by Kiln).",
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "locator",
+        "version"
+      ]
+    },
+    "ProjectId": {
+      "description": "Identifies a project (the hub artifact administered by this agent).",
+      "type": "string",
+      "format": "uuid"
+    },
+    "RealtimeParams": {
+      "description": "Realtime parameters for a project (subscription/CDC configuration).",
+      "type": "object",
+      "properties": {
+        "config": {
+          "description": "Opaque realtime configuration (channels, CDC tables) — typed later.",
+          "default": null
+        },
+        "enabled": {
+          "description": "Whether realtime sync is enabled for the project.",
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "RegistryComponentId": {
+      "description": "Identifier of a component in forge's A2UI registry.\n\nPlaceholder newtype to be resolved against `RFC-FORGE-A2UI-001` when the\nforge registry is available; the shape (id + version) is intentionally stable.",
+      "type": "string"
+    },
+    "SchemaDef": {
+      "description": "A database/table schema definition, with A2UI generation hints.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "Logical schema/table name.",
+          "type": "string"
+        },
+        "ui_hints": {
+          "description": "A2UI generation hints (field types, display formats, component hints).\n\nOpaque `Value` here — the concrete hint vocabulary is owned by forge's\n`flint_meta` / `RFC-FORGE-A2UI-001`; this carries it without re-defining it.",
+          "default": null
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "SubAgentDef": {
+      "description": "A sub-agent belonging to a project (a downstream agent the project defines).",
+      "type": "object",
+      "properties": {
+        "config": {
+          "description": "Opaque configuration (model routing, tools, etc.) — typed in a later phase.",
+          "default": null
+        },
+        "id": {
+          "$ref": "#/$defs/SubAgentId"
+        },
+        "name": {
+          "type": "string"
+        },
+        "role": {
+          "description": "The agent's role/purpose within the project.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "role"
+      ]
+    },
+    "SubAgentId": {
+      "description": "Identifies a sub-agent definition within a project.",
+      "type": "string",
+      "format": "uuid"
+    }
+  }
+}
