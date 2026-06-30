@@ -41,7 +41,7 @@ surface it before proceeding.
 | Format check | `cargo fmt --all --check` |
 | Tests | `cargo test --workspace` |
 | Full CI gate | `./scripts/ci-check.sh` |
-| MSRV floor | `cargo +1.85 check --workspace` |
+| MSRV floor | `cargo +1.93 check --workspace` |
 
 > Full rationale for every rule lives in `CLAUDE.md`. This file is the
 > machine-actionable subset the orchestrator enforces.

@@ -7,13 +7,14 @@
 //! Stub: endpoints accept/return well-typed payloads but do not yet drive the
 //! runner — bodies return a `submitted`/`status_update` placeholder.
 
-use crate::{identity::OperatorContext, state::AppState};
+use crate::{api_error::ApiError, identity::OperatorContext, state::AppState};
 use axum::{
     Json, Router,
     extract::{Path, State},
     routing::{get, post},
 };
-use fpa_domain::TaskId;
+use fpa_app::{AppError, AuthContext};
+use fpa_domain::{AdminTask, OperatorId, TaskId, TaskState};
 use fpa_protocol::TaskEvent;
 use serde::Deserialize;
 use std::sync::Arc;
@@ -30,29 +31,54 @@ pub fn router() -> Router<Arc<AppState>> {
 /// Request body for submitting an administrative task.
 #[derive(Debug, Deserialize)]
 struct SubmitTask {
-    /// Catalog key, e.g. `"forge.table.inspect"`.
-    #[allow(dead_code)]
+    /// Catalog key, e.g. `"forge.table.list"`.
     kind: String,
     /// Structured task input, validated against the catalog.
-    #[allow(dead_code)]
+    #[serde(default)]
     input: serde_json::Value,
 }
 
-/// `POST /a2a/tasks` — submit a new administrative task.
+/// `POST /a2a/tasks` — submit and run a new administrative task.
 ///
-/// The composition root now provides shared state and a gate-derived
-/// [`OperatorContext`]. Catalog validation + dispatch through the runner land in
-/// `p1-c003`; for now the handler proves identity + state flow end-to-end.
+/// Builds an [`AdminTask`] from the body + gate-derived operator, then runs it
+/// through the catalog-backed [`TaskRunner`] (validation → permission → dispatch).
 async fn submit(
     State(state): State<Arc<AppState>>,
     operator: OperatorContext,
-    Json(_req): Json<SubmitTask>,
-) -> Json<TaskEvent> {
-    // Touch shared state so the wiring is exercised (real dispatch in p1-c003).
-    let _runner = &state.runner;
-    tracing::info!(operator = %operator.subject, "a2a task submitted");
-    let task_id = TaskId(Uuid::nil());
-    Json(TaskEvent::Submitted { task_id })
+    Json(req): Json<SubmitTask>,
+) -> Result<Json<TaskEvent>, ApiError> {
+    let task = AdminTask {
+        id: TaskId(Uuid::new_v4()),
+        operator: OperatorId(Uuid::new_v4()),
+        kind: req.kind,
+        input: req.input,
+        state: TaskState::Submitted,
+    };
+    let auth = AuthContext {
+        subject: operator.subject.clone(),
+        roles: operator.roles.clone(),
+    };
+
+    match state.runner.run(&task, &auth).await {
+        Ok(result) => Ok(Json(TaskEvent::Completed {
+            task_id: task.id,
+            result,
+        })),
+        Err(AppError::UnknownTaskKind(k)) => {
+            Err(ApiError::not_found(format!("unknown task kind: {k}")))
+        }
+        Err(AppError::InvalidInput(m)) => Err(ApiError::bad_request(m)),
+        Err(AppError::Unauthorized(m)) => Err(ApiError::forbidden(m)),
+        // Downstream/port failures: surface as a failed TaskEvent (202-style),
+        // not a 5xx — the task was accepted but the plane is unavailable.
+        Err(AppError::Port(e)) => Ok(Json(TaskEvent::Failed {
+            task_id: task.id,
+            reason: e.to_string(),
+        })),
+        // `AppError` is #[non_exhaustive]: future variants map to a generic 400
+        // until handled explicitly.
+        Err(other) => Err(ApiError::bad_request(other.to_string())),
+    }
 }
 
 /// `GET /a2a/tasks/{task_id}` — fetch current task status.

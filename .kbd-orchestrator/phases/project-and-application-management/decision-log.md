@@ -30,3 +30,13 @@ BLOCKER found: frf-agentproto proto-v1 tag is NOT pushed to the fabric remote
 (remote has only main). A tag git-dep would fail everywhere. Resolution: c001
 needs no fabric dep; defer to c003 — then push the tag, OR pin to main SHA
 696f68e, OR hand-roll A2A locally. c001 deps (reqwest, jsonwebtoken) are clean.
+
+### 2026-06-30T21:49:01Z — c003 executed: A2A adopt + MSRV bump
+DECISION (user): adopt a2a-protocol-types 0.6 behind fpa-protocol wrapper.
+CONSEQUENCE: 0.6 requires rustc 1.93 > our MSRV 1.85. DECISION (user): bump
+workspace MSRV 1.85→1.93. Updated: Cargo.toml rust-version, rust-toolchain.toml
+channel, CI msrv job, README, constraints.md, project.json. Installed rust 1.93.1.
+Built: fpa-protocol a2a_std wrapper, fpa-app catalog (8 kinds) + AuthContext +
+TaskRunner dispatch (permission-before-port + audit), ApiError mapping, A2A route
+wiring. Verified live: viewer→list allowed, viewer→deploy 403, unknown→404,
+audit logs decisions w/o secrets. c003 → done (3/4).

@@ -7,6 +7,7 @@ license.workspace = true
 authors.workspace = true
 
 [dependencies]
+a2a-protocol-types = "0.6"
 fpa-domain.workspace = true
 serde.workspace = true
 serde_json.workspace = true
@@ -14,3 +15,6 @@ thiserror.workspace = true
 
 [lints]
 workspace = true
+
+[dev-dependencies]
+uuid.workspace = true

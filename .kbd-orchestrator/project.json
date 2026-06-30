@@ -18,8 +18,8 @@
     "fmt_command": "cargo fmt --all",
     "fmt_check_command": "cargo fmt --all --check",
     "ci_command": "./scripts/ci-check.sh",
-    "msrv": "1.85",
-    "toolchain_channel": "1.90",
+    "msrv": "1.93",
+    "toolchain_channel": "1.93",
     "edition": "2024",
     "tools_configured": [
       "codex",

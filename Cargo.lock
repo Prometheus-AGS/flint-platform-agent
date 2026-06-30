@@ -3,6 +3,16 @@
 version = 4
 
 [[package]]
+name = "a2a-protocol-types"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9d45f4bf034a8f826681f34fc0e2624a6c4105f1b0a9e760decb9aa9ae1dc8f2"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "aho-corasick"
 version = "1.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -264,7 +274,9 @@ dependencies = [
  "fpa-protocol",
  "serde_json",
  "thiserror",
+ "tokio",
  "tracing",
+ "uuid",
 ]
 
 [[package]]
@@ -366,10 +378,12 @@ dependencies = [
 name = "fpa-protocol"
 version = "0.1.0"
 dependencies = [
+ "a2a-protocol-types",
  "fpa-domain",
  "serde",
  "serde_json",
  "thiserror",
+ "uuid",
 ]
 
 [[package]]

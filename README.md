@@ -49,7 +49,7 @@ fpa-cli         ops / dev CLI (bin `fpa`)
 ## Build & Run
 
 Requires the toolchain pinned in [`rust-toolchain.toml`](./rust-toolchain.toml)
-(channel 1.90; MSRV 1.85; edition 2024).
+(channel 1.93; MSRV 1.93; edition 2024).
 
 ```bash
 cargo check --workspace                                 # type-check
