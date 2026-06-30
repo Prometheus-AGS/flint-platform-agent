@@ -7,18 +7,20 @@
 //! Stub: endpoints accept/return well-typed payloads but do not yet drive the
 //! runner — bodies return a `submitted`/`status_update` placeholder.
 
+use crate::{identity::OperatorContext, state::AppState};
 use axum::{
     Json, Router,
-    extract::Path,
+    extract::{Path, State},
     routing::{get, post},
 };
 use fpa_domain::TaskId;
 use fpa_protocol::TaskEvent;
 use serde::Deserialize;
+use std::sync::Arc;
 use uuid::Uuid;
 
 /// Routes for the A2A surface.
-pub fn router() -> Router {
+pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/a2a/tasks", post(submit))
         .route("/a2a/tasks/{task_id}", get(status))
@@ -38,9 +40,17 @@ struct SubmitTask {
 
 /// `POST /a2a/tasks` — submit a new administrative task.
 ///
-/// Stub: mints a task id and acknowledges. The real handler validates `kind`
-/// against the catalog and dispatches to `fpa_app::TaskRunner`.
-async fn submit(Json(_req): Json<SubmitTask>) -> Json<TaskEvent> {
+/// The composition root now provides shared state and a gate-derived
+/// [`OperatorContext`]. Catalog validation + dispatch through the runner land in
+/// `p1-c003`; for now the handler proves identity + state flow end-to-end.
+async fn submit(
+    State(state): State<Arc<AppState>>,
+    operator: OperatorContext,
+    Json(_req): Json<SubmitTask>,
+) -> Json<TaskEvent> {
+    // Touch shared state so the wiring is exercised (real dispatch in p1-c003).
+    let _runner = &state.runner;
+    tracing::info!(operator = %operator.subject, "a2a task submitted");
     let task_id = TaskId(Uuid::nil());
     Json(TaskEvent::Submitted { task_id })
 }

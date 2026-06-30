@@ -8,13 +8,15 @@
   "execute_complete": false,
   "reflect_complete": false,
   "changes_total": 4,
-  "changes_completed": 0,
-  "completed_changes": [],
-  "active_change": "p1-c001-composition-root",
+  "changes_completed": 1,
+  "completed_changes": [
+    "p1-c001-composition-root"
+  ],
+  "active_change": "p1-c002-project-domain-model",
   "blocked_changes": [],
   "sourceTool": "unknown",
   "createdBy": "kbd-new-phase",
-  "updatedAt": "2026-06-30T17:16:20Z",
+  "updatedAt": "2026-06-30T18:09:05Z",
   "analyze_complete": true,
   "spec_complete": true
 }

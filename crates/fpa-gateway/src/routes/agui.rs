@@ -20,7 +20,7 @@ use std::{convert::Infallible, time::Duration};
 const KEEPALIVE_SECS: u64 = 15;
 
 /// Routes for the AG-UI surface.
-pub fn router() -> Router {
+pub fn router() -> Router<std::sync::Arc<crate::state::AppState>> {
     Router::new().route("/agui/stream", get(stream))
 }
 

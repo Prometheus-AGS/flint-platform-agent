@@ -17,7 +17,7 @@ const JSONRPC_VERSION: &str = "2.0";
 const METHOD_NOT_FOUND: i64 = -32601;
 
 /// Routes for the MCP server surface.
-pub fn router() -> Router {
+pub fn router() -> Router<std::sync::Arc<crate::state::AppState>> {
     Router::new().route("/mcp", post(rpc))
 }
 
