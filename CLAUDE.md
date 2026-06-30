@@ -118,8 +118,9 @@ This agent's MCP **server** surface is **HTTP Streaming only** (per the project 
 
 These come from the sibling planes and constrain how the agent administers them — do not violate them:
 
-- **JWT / RLS context (forge §2.2):** Postgres never verifies JWTs; gate does, upstream. Every fabric data operation runs under an RLS context built from verified claims. The agent forwards the operator's identity; it must not fabricate or strip claims.
-- **Four auth layers (forge §2.3):** Kratos (authn) → Keto (coarse relationship) → Postgres RLS (authoritative row filter) → Cedar (action/capability policy). Administrative actions are subject to Cedar policy; respect it.
+- **flint-gate is the ONLY auth boundary.** This agent **never** calls Ory directly (Kratos, Hydra, Keto, Oathkeeper) and **never** verifies Ory JWKS itself. flint-gate authenticates (Kratos), authorizes OAuth (Hydra), checks permissions (Keto), and verifies/mints the JWT upstream. The agent **consumes gate-injected identity** (headers / gate-minted JWT) and derives roles/permissions from those claims only. Do **not** copy the fabric's internal `frf-identity-ory → Oathkeeper` adapter — that is the fabric's own choice, not this agent's.
+- **JWT / RLS context (forge §2.2):** Postgres never verifies JWTs; gate does, upstream. Every fabric data operation runs under an RLS context built from gate-verified claims. The agent forwards the operator's identity; it must not fabricate or strip claims.
+- **Four auth layers (forge §2.3):** Kratos (authn) → Keto (coarse relationship) → Postgres RLS (authoritative row filter) → Cedar (action/capability policy) — all enforced **at/behind gate**, not in this agent. Administrative actions are subject to Cedar policy; respect it.
 - **Subscription RLS enforcement (forge §3.3):** WAL bypasses RLS — fabric re-queries each changed row as the subscriber before delivery. The agent must not assume realtime events are pre-authorized for an arbitrary viewer.
 - **gate dual-server model:** proxy `:4456` (public) vs. admin `:4457` (**never** expose). Administrative calls go to the admin port over a trusted path only.
 

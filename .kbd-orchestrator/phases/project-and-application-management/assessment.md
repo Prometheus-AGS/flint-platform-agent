@@ -83,7 +83,7 @@ Legend: ✅ ready · 🟡 partial/contract-only · ❌ greenfield · ⚠️ bloc
 | 6 | OpenDesign plugin → export to fabric | 🟡 | OpenDesign plugin model confirmed (`open-design.json`, skills→plugins). Need an export target = our project artifact schema (req #2). The plugin itself is authored in OpenDesign's stack, not Rust |
 | 7 | React 19/Vite 7 UI via `build.rs` static embed; playground that *generates* like-architected apps | ❌ | Large. Two sub-parts: (a) **this agent's own** embedded chat UI; (b) a **project generator/template** that scaffolds new agent+UI repos. shadcn+Base UI + assistant-ui + A2UI confirmed viable. **UI source-of-components decision (user, 2026-06-30):** target = the **flint-forge React SDK** (forge change `p5-c010-react-sdk`, *not yet built*); interim = locally-defined A2UI React components or **HTMX prototyping** behind a swappable seam, optionally `@prometheus-ags/a2ui-react` v3.0.0-alpha.0. Replace with forge SDK when it ships |
 | 8 | Tauri desktop+mobile, PWA fallback, runtime detect | ❌ | Confirmed viable (Tauri 2 stable, mobile shipped, runtime detection standard). Cross-cutting UI constraint, not a standalone module |
-| 9 | Ory Kratos+Hydra+Keto auth; Postgres role/permission model from JWT via gate | 🟡 | Aligns with forge's documented 4-layer model (Kratos→Keto→RLS→Cedar). **Hydra (OAuth2) is the new addition** vs forge's spec — verify forge/gate already assume Hydra or if we're extending the model |
+| 9 | Auth via flint-gate; Postgres role/permission model derived from gate-issued JWT | 🟡 | **flint-gate is the ONLY auth boundary (user, 2026-06-30).** This agent does NOT call Ory Kratos/Hydra/Keto/Oathkeeper and does NOT verify against Ory JWKS — gate authenticates (Kratos), authorizes OAuth (Hydra), checks permissions (Keto), and verifies/mints the JWT upstream. The agent trusts gate-injected identity (headers / minted JWT) and **derives roles/permissions from those claims only** (matches forge §2.2: "Postgres never verifies JWT; flint-gate does"). Do **not** copy the fabric's internal `frf-identity-ory → Oathkeeper` adapter — that is the fabric's own choice, not this agent's. **Hydra (OAuth2)** is new vs forge's documented Kratos/Keto/Cedar model — confirm it's gate-side and platform-wide |
 
 ---
 
@@ -95,7 +95,7 @@ Legend: ✅ ready · 🟡 partial/contract-only · ❌ greenfield · ⚠️ bloc
 | assistant-ui for generative UI | ✅ confirmed | YC W25, active through Jun 2026, renders tool calls/JSON as React |
 | shadcn "latest" + Base UI | ✅ confirmed | shadcn supports both Radix and Base UI since Jun 2025; "shadcn + base-ui" is a real path |
 | Tauri 2 desktop+mobile+PWA detect | ✅ confirmed | v2 stable, iOS/Android ship from same core; runtime detection is standard |
-| Ory Hydra alongside Kratos/Keto | 🟡 plausible | Standard Ory stack; **but** forge's spec only names Kratos/Keto/Cedar — confirm Hydra is intended platform-wide or agent-specific |
+| Ory Hydra alongside Kratos/Keto | 🟡 plausible | Standard Ory stack — **but all of it lives behind flint-gate, not in this agent.** Confirm Hydra is gate-side and platform-wide |
 
 ---
 
@@ -116,9 +116,12 @@ Legend: ✅ ready · 🟡 partial/contract-only · ❌ greenfield · ⚠️ bloc
 5. **MCP Rust SDK decision is a gate** for #3/#4 — verify a maintained crate
    (e.g. an official `rmcp`/`modelcontextprotocol` Rust SDK) at plan time per
    Base Rule 22; do not hand-roll if a vetted one exists.
-6. **Auth: confirm the Hydra addition** with the forge/gate owners; the Postgres
-   permission model should be *derived from* gate-issued JWT claims (the agent
-   must not mint its own authority — Base Rule 33, and forge §2.2/§2.3).
+6. **Auth: flint-gate is the sole boundary.** The agent never calls Ory
+   (Kratos/Hydra/Keto/Oathkeeper) and never verifies Ory JWKS itself — it
+   consumes gate-injected identity and derives roles/permissions from those
+   claims. The Postgres permission model is *derived from* gate-issued JWT
+   claims; the agent must not mint its own authority (Base Rule 33; forge
+   §2.2/§2.3). Confirm Hydra is gate-side and platform-wide with the gate owners.
 7. **Two GitHub orgs in play** (`Know-Me-Tools` for forge/gate, `Prometheus-AGS`
    for fabric/this repo). Cross-org git deps need access on every build machine
    — factor into the "portable across machines" goal.
@@ -139,8 +142,10 @@ Legend: ✅ ready · 🟡 partial/contract-only · ❌ greenfield · ⚠️ bloc
   target is the flint-forge React SDK (`p5-c010`, unbuilt). Interim: locally-defined
   A2UI React components or HTMX prototyping behind a swappable seam, optionally
   `@prometheus-ags/a2ui-react` alpha. Replace with forge SDK when ready.
-- **Q4.** Hydra: platform-wide auth decision or agent-local? Who owns the
-  Postgres permission DDL — forge (`flint_auth`) or this agent?
+- **Q4.** ✅ **Partly resolved (user, 2026-06-30):** flint-gate is the only auth
+  boundary; the agent consumes gate-issued JWT/identity and never calls Ory
+  directly. Still open: is Hydra (OAuth2) configured gate-side platform-wide, and
+  who owns the Postgres permission DDL — forge (`flint_auth`) or this agent?
 - **Q5.** Scope cut for THIS phase: I recommend **(a) composition root + (b)
   Project domain model + (c) A2A task catalog skeleton + (d) MCP client
   transport** — and defer UI generation (#7), Tauri (#8), OpenDesign plugin (#6)
