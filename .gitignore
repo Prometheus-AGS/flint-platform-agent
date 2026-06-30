@@ -52,3 +52,7 @@
 # the re-include above because git applies the last matching pattern — a `!` rule
 # placed earlier would be overridden by `!.claude/**`.
 .claude/settings.local.json
+
+# Transient KBD lock files — never travel (must come after !.kbd-orchestrator/** to win).
+*.lock.jsonl
+**/*.jsonl.lock
