@@ -2,13 +2,13 @@
   "phase": "project-and-application-management",
   "previousPhase": null,
   "change": null,
-  "status": "assessment_ready",
-  "currentTask": "run kbd-assess for project-and-application-management",
+  "status": "assessment_complete",
+  "currentTask": "review assessment.md; proceed to analyze or plan",
   "nextPendingChange": null,
   "sourceTool": "unknown",
-  "exactNextCommand": "/kbd-assess project-and-application-management",
+  "exactNextCommand": "/kbd-analyze project-and-application-management",
   "parentPhase": null,
   "childPhases": [],
   "childPointer": null,
-  "updatedAt": "2026-06-30T14:45:26Z"
+  "updatedAt": "2026-06-30T15:26:27Z"
 }

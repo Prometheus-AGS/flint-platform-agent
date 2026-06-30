@@ -25,11 +25,18 @@ The agent uses **`flint-forge`'s** metadata and data-management capabilities to 
 | **flint-realtime-fabric** | `../flint-realtime-fabric` | Realtime spine: CDC, CRDT sync, media/SFU signaling, federation bridges, AG-UI/A2A/A2UI schemas (`frf-agentproto`). |
 | **flint-gate** | `../flint-gate` | AI-native auth proxy / API gateway: route CRUD, auth pipelines, SSE/AG-UI/A2UI passthrough, token metering. |
 
-> **Status: fresh scaffold.** The repo is `cargo init` output — root `Cargo.toml` has no `[workspace]` and `src/main.rs` is `Hello, world!`. Edition is pinned to `2024`. Everything below describes the **target** architecture to build toward; verify against the sibling repos (which are the authoritative source of established conventions) before writing code.
+> **Status: scaffold.** The 10-crate `fpa-*` workspace is in place (builds, clippy-clean, CI green); the protocol surfaces are stubbed with typed payloads and handler bodies are `todo!()`. Everything beyond the wiring described below is the **target** architecture to build toward; verify against the sibling repos (the authoritative source of established conventions) before writing code.
 
-### The A2UI Primitive Mandate
+### A2UI Ownership (corrected)
 
-This agent **defines the canonical A2UI component primitives** that every downstream agent in the Prometheus system reuses for consistent operation. A2UI primitives authored here are the platform-wide vocabulary — do not invent ad-hoc UI schemas; extend the shared primitive set. They must render across all supported hosts (web, desktop/Tauri, CLI). See Base Rule 39 (Artifacts Must Be Structured).
+**The canonical A2UI component vocabulary is owned by `flint-forge`, not by this agent.** Forge's `RFC-FORGE-A2UI-001` ("Flint Global A2UI Component Registry") makes the registry the single source of truth — a metadata-driven, vector-searchable component runtime served from forge's Postgres via SQL / REST / A2A / MCP — and explicitly names `flint-platform-agent` as a **consumer**.
+
+Therefore:
+- This agent **queries and composes** the forge A2UI registry; it does **not** define the primitives.
+- `fpa-protocol`'s A2UI types must **conform to** the forge registry schema (treat them as a typed client view of the registry, not an independent vocabulary). Align them to `RFC-FORGE-A2UI-001` rather than inventing or extending an agent-local set.
+- The registry is not built yet (it is an RFC); code `fpa-protocol`/`fpa-forge` against the documented contract and integrate when forge ships it.
+
+Per Base Rule 39, the artifacts this agent *does* own (e.g. the Project artifact, A2A task payloads) remain typed, versioned, and host-portable.
 
 ---
 
