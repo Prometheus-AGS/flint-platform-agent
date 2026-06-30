@@ -1,0 +1,126 @@
+{
+  "phase": "project-and-application-management",
+  "mode": "stack-specified",
+  "stack": "Rust workspace (Axum 0.8) + React 19/Vite 7 (generated apps) + flint fabric",
+  "generated": "2026-06-30",
+  "research_tiers_used": ["tier1-gh(empty)", "tier3-cargo-search", "tier3-sibling-inspection", "tier4-firecrawl"],
+  "budget_note": "Within caps. gh search returned empty (auth/quoting); compensated with cargo search + docs.rs + sibling-repo inspection.",
+  "gaps": [
+    {
+      "gap": "MCP server (HTTP-Streaming) + MCP client",
+      "requirements": ["#3", "#4"],
+      "candidates": [
+        {
+          "name": "rmcp",
+          "version": "2.0.0",
+          "source": "crates.io / github.com/modelcontextprotocol/rust-sdk",
+          "verdict": "ADOPT",
+          "confidence": "high",
+          "evidence": "Official MCP Rust SDK. docs.rs + repo confirm stdio + streamable-HTTP transports, full capabilities (tools/prompts/resources/logging), BOTH server and client. Covers our HTTP-Streaming-only server constraint and the client role from one dependency.",
+          "notes": "Pin exact version; verify the streamable-http server feature flag at integration. Two majors exist on crates.io (rmcp 2.0.0) vs docs.rs showing 1.7.0 — confirm the canonical line before pinning."
+        },
+        {"name": "rust-mcp-sdk", "version": "0.10.0", "verdict": "FALLBACK", "confidence": "medium", "evidence": "Community SDK, server+client, streamable HTTP. Use only if rmcp's API proves unworkable."}
+      ]
+    },
+    {
+      "gap": "A2A (Agent2Agent) task protocol types + server/client",
+      "requirements": ["#1", "#2"],
+      "candidates": [
+        {
+          "name": "a2a-protocol-types",
+          "version": "0.6.0",
+          "source": "crates.io",
+          "verdict": "ADOPT (types)",
+          "confidence": "medium",
+          "evidence": "Pure data types, serde only, no I/O, A2A v1.0. Exactly the Layer-0 shape our hexagonal architecture wants — composes into fpa-domain/fpa-protocol without dragging in a transport.",
+          "notes": "Companion a2a-protocol-server (hyper) / a2a-protocol-client exist but are hyper-backed — we are Axum, so prefer the -types crate and implement transport on our own Axum routes. Early (0.6.0); wrap behind our own types so a swap is cheap."
+        },
+        {"name": "a2a-rs", "version": "0.4.1", "verdict": "CONSIDER", "confidence": "low", "evidence": "Fuller Rust A2A impl incl. a2a-web-client. Heavier; evaluate only if -types is insufficient."},
+        {"name": "hand-roll on frf-agentproto", "verdict": "FALLBACK", "confidence": "medium", "evidence": "Define A2A TaskEvent on top of the fabric's ContentBlock for ecosystem parity. Already partly done in fpa-protocol. Lower external risk, more in-house code."}
+      ]
+    },
+    {
+      "gap": "AG-UI event protocol + SSE encoding",
+      "requirements": ["#1", "#7"],
+      "candidates": [
+        {
+          "name": "agui-protocol",
+          "version": "0.1.0",
+          "source": "crates.io",
+          "verdict": "CONSIDER",
+          "confidence": "low",
+          "evidence": "AG-UI protocol types + serde + SSE parser, transport-independent. Purpose-built and small. Companions agui-rs-server/agui-rs-client 0.1.x exist.",
+          "notes": "Very early (0.1.0, low adoption). Risk of churn. Our current fpa-protocol::AgUiEvent + Axum SSE already works for the stub. Recommend: keep our types, optionally adopt agui-protocol's SSE parser if it saves real work — do not take a hard dependency on a 0.1 crate for the core type vocabulary."
+        },
+        {"name": "hand-roll on Axum SSE + frf-agentproto", "verdict": "ADOPT (default)", "confidence": "high", "evidence": "Already implemented in fpa-gateway routes/agui.rs; aligns to fabric ContentBlock. Lowest risk."}
+      ]
+    },
+    {
+      "gap": "Auth — consume flint-gate identity (NO direct Ory)",
+      "requirements": ["#9"],
+      "candidates": [
+        {
+          "name": "reqwest + jsonwebtoken",
+          "version": "reqwest 0.12 (rustls-tls) / jsonwebtoken 9",
+          "source": "crates.io; matches flint-gate's own deps",
+          "verdict": "ADOPT",
+          "confidence": "high",
+          "evidence": "flint-gate is the ONLY auth boundary; this agent consumes gate-injected identity / gate-minted JWT and derives roles from claims. reqwest for any gate admin calls; jsonwebtoken to READ/validate gate-issued JWT against gate's published key. Mirrors flint-gate-core's own stack (reqwest 0.12 rustls + jsonwebtoken 9).",
+          "notes": "Do NOT add ory-client/ory-kratos-client/oathkeeper. Do NOT copy fabric's frf-identity-ory→Oathkeeper adapter."
+        }
+      ]
+    },
+    {
+      "gap": "Cross-repo type reuse (fabric protocol parity)",
+      "requirements": ["#1"],
+      "candidates": [
+        {
+          "name": "frf-agentproto (git dependency)",
+          "version": "tag proto-v1",
+          "source": "github.com/Prometheus-AGS/flint-realtime-fabric",
+          "verdict": "ADOPT (git dep)",
+          "confidence": "high",
+          "evidence": "ContentBlock + proto types implemented; proto-v1 tag confirmed to exist. Git dep pins reproducibly and survives across machines. Gives wire parity with the fabric without vendoring.",
+          "notes": "Cross-org SSH access required on every build machine (fabric=Prometheus-AGS). Factor into CI secrets."
+        }
+      ]
+    },
+    {
+      "gap": "Frontend A2UI components (this agent's embedded UI + generated apps)",
+      "requirements": ["#7", "#8"],
+      "candidates": [
+        {"name": "flint-forge React SDK", "version": "forge change p5-c010-react-sdk", "verdict": "TARGET (not built)", "confidence": "high", "evidence": "Intended end-state per user. Not yet implemented in forge.", "notes": "Build behind a swappable seam until it ships."},
+        {"name": "@prometheus-ags/a2ui-react", "version": "3.0.0-alpha.0", "verdict": "INTERIM ADOPT", "confidence": "medium", "evidence": "Published; EntityChat/EntityCopilot/EntityStream/EntityDiff/EntityApproval on entity-graph core. Closest real A2UI React library today.", "notes": "Alpha; pin and isolate behind the seam."},
+        {"name": "shadcn/ui (Base UI) + assistant-ui + HTMX", "verdict": "INTERIM ADOPT", "confidence": "high", "evidence": "Firecrawl-confirmed: shadcn supports Base UI since Jun 2025; assistant-ui (YC W25) active for generative UI; HTMX for quick server-rendered prototyping.", "notes": "Local/HTMX components are scaffolding to be replaced by the forge SDK."}
+      ]
+    },
+    {
+      "gap": "Tauri 2 desktop+mobile shell with PWA fallback",
+      "requirements": ["#8"],
+      "candidates": [
+        {"name": "Tauri 2", "version": "2.x stable", "verdict": "ADOPT (later phase)", "confidence": "high", "evidence": "Firecrawl-confirmed v2 stable, iOS/Android ship from same Rust core, runtime detection standard.", "notes": "Cross-cutting UI constraint; deferred to a UI phase per the scope cut."}
+      ]
+    },
+    {
+      "gap": "OpenDesign plugin → fabric export",
+      "requirements": ["#6"],
+      "candidates": [
+        {"name": "open-design (nexu-io) plugin/skill model", "version": "current", "verdict": "ADOPT-AS-INTEGRATION (later phase)", "confidence": "medium", "evidence": "open-design.json manifest, plugins/+skills/ dirs, `od plugin list|install`, skill→plugin graduation, serialized export — firecrawl-confirmed.", "notes": "Plugin authored in OpenDesign's own stack (not this Rust workspace); export target = our Project artifact schema (req #2). Defer to a later phase."}
+      ]
+    },
+    {
+      "gap": "Knowledge base (project-linked, generation aid)",
+      "requirements": ["#5"],
+      "candidates": [
+        {"name": "forge ext-flint-llm (Ember) — in-DB embeddings/LLM", "verdict": "TARGET (forge-owned)", "confidence": "medium", "evidence": "forge already houses KB/embeddings in ext-flint-llm (pgrx).", "notes": "Build the KB abstraction in fpa-app now; wire to forge/Ember via the forge port when forge's gateway exposes it."}
+      ]
+    }
+  ],
+  "key_adopt_verdicts": [
+    "rmcp (high) — MCP server+client, one dep",
+    "a2a-protocol-types (medium, types only) + Axum transport",
+    "AG-UI: keep in-house types on Axum SSE (high); agui-protocol only as optional SSE-parser aid",
+    "Auth: reqwest + jsonwebtoken to consume flint-gate ONLY (high) — no Ory crates",
+    "frf-agentproto as git dep @ proto-v1 (high)"
+  ]
+}
