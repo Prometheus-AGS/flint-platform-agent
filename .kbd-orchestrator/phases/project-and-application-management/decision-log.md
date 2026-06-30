@@ -23,3 +23,10 @@ All four pass . Two decisions deferred into change Open Questions, to resolve at
 Order: c001 ∥ c002 (roots) → c003 (needs both) → c004 (needs c003). Linear for single-dev.
 First to apply: p1-c001-composition-root. Library annotations carried from analyze.
 Waypoint refreshed; plan_complete=true; active_change=p1-c001-composition-root.
+
+### 2026-06-30T17:58:02Z — Execute: backend=openspec; c001 unblocked; fabric tag blocker found
+Backend: openspec, driven via /kbd-apply (not bare /opsx:apply).
+BLOCKER found: frf-agentproto proto-v1 tag is NOT pushed to the fabric remote
+(remote has only main). A tag git-dep would fail everywhere. Resolution: c001
+needs no fabric dep; defer to c003 — then push the tag, OR pin to main SHA
+696f68e, OR hand-roll A2A locally. c001 deps (reqwest, jsonwebtoken) are clean.
