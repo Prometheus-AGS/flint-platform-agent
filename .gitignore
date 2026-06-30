@@ -1,0 +1,54 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Rust build artifacts
+# ─────────────────────────────────────────────────────────────────────────────
+/target
+**/*.rs.bk
+*.pdb
+
+# Cargo.lock IS committed — this workspace produces binaries (fpa-gateway, fpa-cli),
+# so the lockfile is intentionally tracked for reproducible builds. Do not ignore it.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Machine-local / secret files (these MUST NOT travel between machines)
+# ─────────────────────────────────────────────────────────────────────────────
+# Note: .claude/settings.local.json (per-host permission grants) is ignored at the
+# very bottom of this file — it must come after the .claude/** re-include to win.
+# Local environment / secrets.
+.env
+.env.*
+!.env.example
+
+# OS / editor cruft
+.DS_Store
+*.swp
+*~
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Portable project state — INTENTIONALLY TRACKED so it follows you across machines.
+# The `!` rules below defend this state against any broad ignore pattern that may
+# be added later. Do not add a bare `.kbd-orchestrator/`, `.codex/`, etc. above.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# KBD orchestrator state (project.json, constraints.md, phase/waypoint state).
+!.kbd-orchestrator/
+!.kbd-orchestrator/**
+
+# OpenSpec specs, changes, and archive — the spec source of truth.
+!openspec/
+!openspec/**
+
+# OpenSpec / agent tool skills + slash commands (codex, claude, kimi, opencode).
+# Shared, version-controlled team config — keep them tracked.
+!.codex/
+!.codex/**
+!.kimi/
+!.kimi/**
+!.opencode/
+!.opencode/**
+# Track committed Claude config (commands, skills)...
+!.claude/
+!.claude/**
+# ...but the machine-local override must stay ignored. This negation comes AFTER
+# the re-include above because git applies the last matching pattern — a `!` rule
+# placed earlier would be overridden by `!.claude/**`.
+.claude/settings.local.json

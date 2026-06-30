@@ -1,0 +1,55 @@
+{
+  "name": "Flint Platform Agent",
+  "description": "Axum server providing the administrative agent for the entire Prometheus Flint fabric, speaking AG-UI, A2A, A2UI, and MCP (app/client/HTTP-streaming server) over forge, realtime-fabric, and gate.",
+  "active_phase": null,
+  "focus_project_path": "/Users/gqadonis/Projects/prometheus/flint-platform-agent",
+  "spec_paths": ["openspec/specs", "openspec/changes"],
+  "openspec_available": true,
+  "constraint_file": ".kbd-orchestrator/constraints.md",
+  "build_health_command": "cargo check --workspace",
+  "test_command": "cargo test --workspace",
+  "lint_command": "cargo clippy --workspace --all-targets -- -D warnings",
+  "dev_command": "cargo run -p fpa-gateway",
+  "preferred_planning_agent": "antigravity",
+  "preferred_execution_agents": [],
+  "agents_config": {
+    "fmt_command": "cargo fmt --all",
+    "fmt_check_command": "cargo fmt --all --check",
+    "ci_command": "./scripts/ci-check.sh",
+    "msrv": "1.85",
+    "toolchain_channel": "1.90",
+    "edition": "2024",
+    "tools_configured": ["codex", "claude", "kimi", "opencode"]
+  },
+  "workspace": {
+    "workspace_file": null,
+    "folders": [
+      {
+        "path": "/Users/gqadonis/Projects/prometheus/flint-platform-agent",
+        "role": "focus",
+        "write_access": true
+      },
+      {
+        "path": "/Users/gqadonis/Projects/prometheus/flint-forge",
+        "role": "reference",
+        "write_access": false,
+        "purpose": "Sovereign data & edge-compute plane; source of fabric metadata/data management the agent administers.",
+        "read_paths": ["CLAUDE.md", "README.md", "docs/**/*.md", "crates/frf-agentproto/**"]
+      },
+      {
+        "path": "/Users/gqadonis/Projects/prometheus/flint-realtime-fabric",
+        "role": "reference",
+        "write_access": false,
+        "purpose": "Realtime spine; owns the canonical AG-UI/A2A/A2UI ContentBlock protocol types the agent reuses.",
+        "read_paths": ["CLAUDE.md", "crates/frf-agentproto/src/**", "proto/**/*.proto", "docs/**/*.md"]
+      },
+      {
+        "path": "/Users/gqadonis/Projects/prometheus/flint-gate",
+        "role": "reference",
+        "write_access": false,
+        "purpose": "AI-native auth proxy/gateway; the agent administers its routes/auth/streaming via the admin API.",
+        "read_paths": ["README.md", "config.example.yaml", "docs/**/*.md"]
+      }
+    ]
+  }
+}

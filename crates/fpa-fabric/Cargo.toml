@@ -1,0 +1,15 @@
+[package]
+name = "fpa-fabric"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+fpa-ports.workspace = true
+async-trait.workspace = true
+tracing.workspace = true
+
+[lints]
+workspace = true

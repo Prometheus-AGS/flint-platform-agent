@@ -1,0 +1,19 @@
+[package]
+name = "fpa-app"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+fpa-domain.workspace = true
+fpa-ports.workspace = true
+fpa-protocol.workspace = true
+async-trait.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+
+[lints]
+workspace = true

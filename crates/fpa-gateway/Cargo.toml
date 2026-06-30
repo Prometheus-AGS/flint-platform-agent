@@ -1,0 +1,35 @@
+[package]
+name = "fpa-gateway"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[[bin]]
+name = "fpa-gateway"
+path = "src/main.rs"
+
+[dependencies]
+# composition root — the ONLY crate that imports concrete adapters
+fpa-domain.workspace = true
+fpa-ports.workspace = true
+fpa-app.workspace = true
+fpa-protocol.workspace = true
+fpa-forge.workspace = true
+fpa-fabric.workspace = true
+fpa-gate.workspace = true
+fpa-mcp.workspace = true
+
+axum.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+anyhow.workspace = true
+futures.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+uuid.workspace = true
+
+[lints]
+workspace = true

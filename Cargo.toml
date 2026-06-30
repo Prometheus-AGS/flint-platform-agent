@@ -1,0 +1,62 @@
+[workspace]
+resolver = "2"
+members = [
+  # Layer 0 — pure domain
+  "crates/fpa-domain",
+  # Layer 1 — ports (trait seams) + use-cases
+  "crates/fpa-ports",
+  "crates/fpa-app",
+  # Protocol payloads (AG-UI / A2A / A2UI / MCP wire types)
+  "crates/fpa-protocol",
+  # Infrastructure adapters — one plane per crate
+  "crates/fpa-forge",
+  "crates/fpa-fabric",
+  "crates/fpa-gate",
+  "crates/fpa-mcp",
+  # Interface / composition roots
+  "crates/fpa-gateway",
+  "crates/fpa-cli",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "Proprietary"
+authors = ["Prometheus AGS"]
+
+[workspace.dependencies]
+# --- shared runtime / serde (versions aligned with sibling planes) ---
+tokio = { version = "1", features = ["full"] }
+axum = "0.8.8"
+async-trait = "0.1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+anyhow = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+futures = "0.3"
+arc-swap = "1"
+uuid = { version = "1", features = ["v4", "serde"] }
+
+# --- internal crates ---
+fpa-domain = { path = "crates/fpa-domain" }
+fpa-ports = { path = "crates/fpa-ports" }
+fpa-app = { path = "crates/fpa-app" }
+fpa-protocol = { path = "crates/fpa-protocol" }
+fpa-forge = { path = "crates/fpa-forge" }
+fpa-fabric = { path = "crates/fpa-fabric" }
+fpa-gate = { path = "crates/fpa-gate" }
+fpa-mcp = { path = "crates/fpa-mcp" }
+
+[workspace.lints.clippy]
+# Pedantic is the CI gate (run with -D warnings). Allows below are scaffold-stage
+# concessions, each to be revisited as the todo!() bodies are implemented.
+pedantic = { level = "warn", priority = -1 }
+missing_errors_doc = "allow"  # Result-returning stubs; "# Errors" docs land with the implementations
+missing_panics_doc = "allow"  # todo!() stubs panic by definition until implemented
+must_use_candidate = "allow"  # premature on scaffolding
+module_name_repetitions = "allow"
+doc_markdown = "allow"        # domain vocabulary: Agent2Agent, AG-UI, A2UI, flint-gate, pg_graphql
+unnecessary_wraps = "allow"   # binary main()s return Result by convention; fallible work lands later
