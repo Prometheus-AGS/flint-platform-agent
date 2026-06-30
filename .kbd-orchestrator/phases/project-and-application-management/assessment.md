@@ -81,7 +81,7 @@ Legend: ✅ ready · 🟡 partial/contract-only · ❌ greenfield · ⚠️ bloc
 | 4 | MCP client behavior | 🟡 | Trait exists; need an MCP client transport (HTTP-streaming + stdio). Verify a maintained Rust MCP SDK vs hand-roll |
 | 5 | Knowledge-base tied to projects | ⚠️❌ | Depends on forge Postgres + `ext-flint-llm` (Ember) embeddings. Build the KB *abstraction* now; wire to forge later |
 | 6 | OpenDesign plugin → export to fabric | 🟡 | OpenDesign plugin model confirmed (`open-design.json`, skills→plugins). Need an export target = our project artifact schema (req #2). The plugin itself is authored in OpenDesign's stack, not Rust |
-| 7 | React 19/Vite 7 UI via `build.rs` static embed; playground that *generates* like-architected apps | ❌ | Large. Two sub-parts: (a) **this agent's own** embedded chat UI; (b) a **project generator/template** that scaffolds new agent+UI repos. shadcn+Base UI + assistant-ui + A2UI confirmed viable |
+| 7 | React 19/Vite 7 UI via `build.rs` static embed; playground that *generates* like-architected apps | ❌ | Large. Two sub-parts: (a) **this agent's own** embedded chat UI; (b) a **project generator/template** that scaffolds new agent+UI repos. shadcn+Base UI + assistant-ui + A2UI confirmed viable. **UI source-of-components decision (user, 2026-06-30):** target = the **flint-forge React SDK** (forge change `p5-c010-react-sdk`, *not yet built*); interim = locally-defined A2UI React components or **HTMX prototyping** behind a swappable seam, optionally `@prometheus-ags/a2ui-react` v3.0.0-alpha.0. Replace with forge SDK when it ships |
 | 8 | Tauri desktop+mobile, PWA fallback, runtime detect | ❌ | Confirmed viable (Tauri 2 stable, mobile shipped, runtime detection standard). Cross-cutting UI constraint, not a standalone module |
 | 9 | Ory Kratos+Hydra+Keto auth; Postgres role/permission model from JWT via gate | 🟡 | Aligns with forge's documented 4-layer model (Kratos→Keto→RLS→Cedar). **Hydra (OAuth2) is the new addition** vs forge's spec — verify forge/gate already assume Hydra or if we're extending the model |
 
@@ -135,7 +135,10 @@ Legend: ✅ ready · 🟡 partial/contract-only · ❌ greenfield · ⚠️ bloc
   against the RFC indefinitely? (Determines whether integration is in-scope this phase.)
 - **Q2.** Reference siblings via **git dependency** (recommended) — confirm tags
   exist (`proto-v1` on fabric?) and CI machines have cross-org SSH access.
-- **Q3.** Confirm the A2UI ownership reframe (agent consumes forge registry).
+- **Q3.** ✅ **Resolved (user, 2026-06-30):** agent consumes forge's A2UI;
+  target is the flint-forge React SDK (`p5-c010`, unbuilt). Interim: locally-defined
+  A2UI React components or HTMX prototyping behind a swappable seam, optionally
+  `@prometheus-ags/a2ui-react` alpha. Replace with forge SDK when ready.
 - **Q4.** Hydra: platform-wide auth decision or agent-local? Who owns the
   Postgres permission DDL — forge (`flint_auth`) or this agent?
 - **Q5.** Scope cut for THIS phase: I recommend **(a) composition root + (b)

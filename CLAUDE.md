@@ -38,6 +38,14 @@ Therefore:
 
 Per Base Rule 39, the artifacts this agent *does* own (e.g. the Project artifact, A2A task payloads) remain typed, versioned, and host-portable.
 
+#### UI strategy while forge is unfinished (interim)
+
+The intended end state is: **all UI here consumes the flint-forge SDK** (its React SDK is forge change `p5-c010-react-sdk` — planned, **not yet built**). Until forge ships those base components, build behind a swappable seam:
+
+- Define an **A2UI component abstraction** in the frontend with one render boundary, so the component source can be swapped without touching call sites.
+- Back it **temporarily** with either (a) locally-defined React A2UI components, (b) **HTMX for prototyping** where a quick server-rendered surface is enough, and/or (c) the already-published `@prometheus-ags/a2ui-react` (v3.0.0-alpha.0 — `EntityChat`, `EntityCopilot`, `EntityStream`, `EntityDiff`, `EntityApproval`) where it fits.
+- These local/HTMX components are **scaffolding to be replaced** — mark them clearly and resolve to the forge SDK once it lands. Do not let the interim implementation harden into a parallel vocabulary.
+
 ---
 
 ## Build Commands
