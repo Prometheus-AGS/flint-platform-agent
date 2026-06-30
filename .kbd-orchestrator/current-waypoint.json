@@ -1,14 +1,14 @@
 {
   "phase": "project-and-application-management",
   "previousPhase": null,
-  "change": null,
-  "status": "spec_complete",
-  "currentTask": "order the 4 changes; proceed to plan",
-  "nextPendingChange": null,
+  "change": "p1-c001-composition-root",
+  "status": "plan_complete",
+  "currentTask": "apply p1-c001-composition-root (composition root)",
+  "nextPendingChange": "p1-c002-project-domain-model",
   "sourceTool": "unknown",
-  "exactNextCommand": "/kbd-plan project-and-application-management",
+  "exactNextCommand": "/opsx:apply p1-c001-composition-root",
   "parentPhase": null,
   "childPhases": [],
   "childPointer": null,
-  "updatedAt": "2026-06-30T17:07:27Z"
+  "updatedAt": "2026-06-30T17:16:20Z"
 }

@@ -18,3 +18,8 @@ Changes:
 - p1-c003-a2a-task-catalog  — task catalog + TaskRunner dispatch (adopt a2a-protocol-types behind wrapper; OPEN Q at impl)
 - p1-c004-mcp-transport     — rmcp server (HTTP-stream only) + client; skill format (OPEN Q: rmcp version line)
 All four pass . Two decisions deferred into change Open Questions, to resolve at execute.
+
+### 2026-06-30T17:16:20Z — Plan: ordered 4 changes
+Order: c001 ∥ c002 (roots) → c003 (needs both) → c004 (needs c003). Linear for single-dev.
+First to apply: p1-c001-composition-root. Library annotations carried from analyze.
+Waypoint refreshed; plan_complete=true; active_change=p1-c001-composition-root.
