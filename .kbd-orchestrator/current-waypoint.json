@@ -2,13 +2,13 @@
   "phase": "project-and-application-management",
   "previousPhase": null,
   "change": null,
-  "status": "analyze_complete",
-  "currentTask": "review analysis.md + library-candidates.json; proceed to spec",
+  "status": "spec_complete",
+  "currentTask": "order the 4 changes; proceed to plan",
   "nextPendingChange": null,
   "sourceTool": "unknown",
-  "exactNextCommand": "/kbd-spec project-and-application-management",
+  "exactNextCommand": "/kbd-plan project-and-application-management",
   "parentPhase": null,
   "childPhases": [],
   "childPointer": null,
-  "updatedAt": "2026-06-30T16:49:05Z"
+  "updatedAt": "2026-06-30T17:07:27Z"
 }

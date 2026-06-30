@@ -7,13 +7,14 @@
   "plan_complete": false,
   "execute_complete": false,
   "reflect_complete": false,
-  "changes_total": 0,
+  "changes_total": 4,
   "changes_completed": 0,
   "completed_changes": [],
   "active_change": null,
   "blocked_changes": [],
   "sourceTool": "unknown",
   "createdBy": "kbd-new-phase",
-  "updatedAt": "2026-06-30T16:49:05Z",
-  "analyze_complete": true
+  "updatedAt": "2026-06-30T17:07:27Z",
+  "analyze_complete": true,
+  "spec_complete": true
 }
