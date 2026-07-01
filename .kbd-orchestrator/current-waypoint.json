@@ -2,13 +2,13 @@
   "phase": "forge-writes-and-realtime",
   "previousPhase": "forge-integration-and-real-dispatch",
   "change": null,
-  "status": "execute_complete",
-  "currentTask": "all 3 changes done; proceed to reflect",
+  "status": "phase_complete",
+  "currentTask": "phase forge-writes reflected; start next phase",
   "nextPendingChange": "p3-c002-fabric-health",
   "sourceTool": "unknown",
-  "exactNextCommand": "/kbd-reflect forge-writes-and-realtime",
+  "exactNextCommand": "/kbd-next-phase",
   "parentPhase": null,
   "childPhases": [],
   "childPointer": null,
-  "updatedAt": "2026-07-01T21:02:42Z"
+  "updatedAt": "2026-07-01T21:04:56Z"
 }
