@@ -27,3 +27,9 @@ First to apply: p2-c001-credential-threading. Waypoint refreshed; plan_complete=
   Closes the MCP-identity debt fully.
 - c003 validation: adopt jsonschema crate (full JSON Schema validation) —
   verify MSRV vs 1.93 before pinning (phase-1 lesson).
+
+### c002 executed: forge read integration
+Q3 resolved: describe_table uses OpenAPI component schemas (no GraphQL
+introspection needed). list_tables ← GET /openapi.json (public). graphql_query
+helper forwards bearer → RLS; missing bearer/401 → Unauthorized. 6 wiremock tests.
+Live-forge smoke (4.5) NOT run — needs local Postgres-backed Quarry; deferred.
