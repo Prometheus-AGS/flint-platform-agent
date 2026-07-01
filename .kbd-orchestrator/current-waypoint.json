@@ -2,13 +2,13 @@
   "phase": "forge-writes-and-realtime",
   "previousPhase": "forge-integration-and-real-dispatch",
   "change": null,
-  "status": "analyze_complete",
-  "currentTask": "review analysis; proceed to spec",
+  "status": "spec_complete",
+  "currentTask": "order the 3 changes; proceed to plan",
   "nextPendingChange": null,
   "sourceTool": "unknown",
-  "exactNextCommand": "/kbd-spec forge-writes-and-realtime",
+  "exactNextCommand": "/kbd-plan forge-writes-and-realtime",
   "parentPhase": null,
   "childPhases": [],
   "childPointer": null,
-  "updatedAt": "2026-07-01T20:40:27Z"
+  "updatedAt": "2026-07-01T20:44:46Z"
 }
