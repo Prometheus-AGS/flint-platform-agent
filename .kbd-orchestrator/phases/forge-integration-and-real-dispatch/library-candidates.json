@@ -1,0 +1,94 @@
+{
+  "phase": "forge-integration-and-real-dispatch",
+  "mode": "stack-specified",
+  "stack": "Rust workspace (Axum 0.8, reqwest 0.12, jsonwebtoken 9) integrating flint-forge Quarry HTTP",
+  "generated": "2026-06-30",
+  "research_tiers_used": ["tier3-cargo-search", "tier3-sibling-inspection"],
+  "budget_note": "Light phase: integration against a known contract, no new runtime deps. Only external question was the test-mock crate.",
+  "gaps": [
+    {
+      "gap": "HTTP client for fpa-forge (call forge Quarry /openapi.json + /graphql)",
+      "requirements": ["forge read-only integration"],
+      "candidates": [
+        {
+          "name": "reqwest",
+          "version": "0.12 (rustls-tls, json)",
+          "source": "already in workspace deps",
+          "verdict": "ADOPT (already present)",
+          "confidence": "high",
+          "evidence": "Already used by fpa-gate/fpa-mcp adapters and matches flint-gate's own client stack. No new dependency; add reqwest to fpa-forge and reuse the workspace pin."
+        }
+      ]
+    },
+    {
+      "gap": "GraphQL request construction (forge POST /graphql)",
+      "requirements": ["forge data reads under RLS"],
+      "candidates": [
+        {
+          "name": "hand-built JSON GraphQL body",
+          "version": "n/a",
+          "source": "serde_json (in workspace)",
+          "verdict": "BUILD (no client crate)",
+          "confidence": "high",
+          "evidence": "Forge's /graphql body is standard { query, variables, operationName }. A typed graphql client crate (graphql_client) requires codegen against a schema and is overkill for a handful of read queries. Build the JSON body with serde_json; reconsider graphql_client if query volume grows.",
+          "notes": "Matches forge's own GraphQlRequest domain shape."
+        }
+      ]
+    },
+    {
+      "gap": "HTTP mocking for fpa-forge integration tests (Q1: fixtures vs live forge)",
+      "requirements": ["testability without a live Postgres-backed forge"],
+      "candidates": [
+        {
+          "name": "wiremock",
+          "version": "0.6",
+          "source": "crates.io; used by flint-gate (flint-gate-client / -core)",
+          "verdict": "ADOPT (dev-dependency)",
+          "confidence": "high",
+          "evidence": "Async/tokio-native HTTP mock, matches our #[tokio::test] adapters. flint-gate already uses it to test its reqwest HTTP client — the closest sibling precedent to fpa-forge. Lets us test fpa-forge against recorded /openapi.json + /graphql responses without running forge.",
+          "notes": "Alternative httpmock 0.8 is used by fabric's Ory adapters; either works, but wiremock aligns with gate's client-testing precedent and is async-first."
+        },
+        {
+          "name": "httpmock",
+          "version": "0.8",
+          "verdict": "ALTERNATIVE",
+          "confidence": "medium",
+          "evidence": "Used by fabric's frf-identity-ory / frf-authz-keto. Also viable; wiremock preferred for async-native + gate precedent."
+        }
+      ]
+    },
+    {
+      "gap": "Credential threading (forward gate bearer to forge) — CROSS-CUTTING",
+      "requirements": ["gate JWT → forge bearer → RLS"],
+      "candidates": [
+        {
+          "name": "extend AuthContext with a raw bearer (internal design, no dep)",
+          "version": "n/a",
+          "verdict": "BUILD",
+          "confidence": "medium",
+          "evidence": "No library solves this — it is a port-signature design decision. Recommend adding an optional raw `bearer` to fpa-app::AuthContext, retained from the c001 gate extractor, and passing it through TaskRunner::run to the forge port method. Touches fpa-app + fpa-ports + fpa-forge + both surfaces.",
+          "notes": "OPEN (Q2 from assessment): AuthContext.bearer vs a separate request-context object. Decide at spec. Never log the bearer (extend c003 audit-skip to the forge adapter)."
+        }
+      ]
+    },
+    {
+      "gap": "In-memory task store (A2A status/cancel)",
+      "requirements": ["task lifecycle state"],
+      "candidates": [
+        {
+          "name": "std HashMap behind Arc<RwLock> (or tokio RwLock)",
+          "version": "n/a (tokio already present)",
+          "verdict": "BUILD",
+          "confidence": "high",
+          "evidence": "In-memory, single-process this phase; no store crate warranted (YAGNI). Use tokio::sync::RwLock<HashMap<TaskId, TaskRecord>> in the app layer. Durable/persisted store is a later concern (revisit when forge or a queue backs it)."
+        }
+      ]
+    }
+  ],
+  "key_adopt_verdicts": [
+    "reqwest (already present) for fpa-forge HTTP — no new runtime dep",
+    "wiremock 0.6 as dev-dep for fpa-forge tests (matches flint-gate precedent, async-native)",
+    "Build GraphQL body with serde_json (no graphql_client codegen)",
+    "Credential threading + task store are internal BUILD decisions, not adopt (design at spec)"
+  ]
+}
