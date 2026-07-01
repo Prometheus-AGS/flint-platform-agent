@@ -2,13 +2,13 @@
   "phase": "forge-integration-and-real-dispatch",
   "previousPhase": "project-and-application-management",
   "change": null,
-  "status": "analyze_complete",
-  "currentTask": "review analysis; proceed to spec",
+  "status": "spec_complete",
+  "currentTask": "order the 4 changes; proceed to plan",
   "nextPendingChange": null,
   "sourceTool": "unknown",
-  "exactNextCommand": "/kbd-spec forge-integration-and-real-dispatch",
+  "exactNextCommand": "/kbd-plan forge-integration-and-real-dispatch",
   "parentPhase": null,
   "childPhases": [],
   "childPointer": null,
-  "updatedAt": "2026-07-01T03:56:58Z"
+  "updatedAt": "2026-07-01T04:01:20Z"
 }
