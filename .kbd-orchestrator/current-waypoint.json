@@ -1,14 +1,14 @@
 {
   "phase": "forge-writes-and-realtime",
   "previousPhase": "forge-integration-and-real-dispatch",
-  "change": "p3-c001-forge-write-mutations",
-  "status": "execution_ready",
-  "currentTask": "apply p3-c001-forge-write-mutations",
+  "change": null,
+  "status": "execute_complete",
+  "currentTask": "all 3 changes done; proceed to reflect",
   "nextPendingChange": "p3-c002-fabric-health",
   "sourceTool": "unknown",
-  "exactNextCommand": "/kbd-execute forge-writes-and-realtime",
+  "exactNextCommand": "/kbd-reflect forge-writes-and-realtime",
   "parentPhase": null,
   "childPhases": [],
   "childPointer": null,
-  "updatedAt": "2026-07-01T20:48:25Z"
+  "updatedAt": "2026-07-01T21:02:42Z"
 }

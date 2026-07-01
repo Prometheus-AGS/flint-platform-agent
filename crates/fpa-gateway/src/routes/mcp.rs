@@ -200,3 +200,27 @@ async fn call_tool(
         })),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn tools_list_advertises_real_per_kind_schema() {
+        let defs = tool_definitions();
+        let tools = defs["tools"].as_array().expect("tools array");
+        // forge.table.describe requires a `name` field — assert the real schema,
+        // not a placeholder {"type":"object"}.
+        let describe = tools
+            .iter()
+            .find(|t| t["name"] == "forge.table.describe")
+            .expect("forge.table.describe present");
+        let required = describe["inputSchema"]["required"]
+            .as_array()
+            .expect("required array");
+        assert!(
+            required.iter().any(|r| r == "name"),
+            "forge.table.describe must advertise required 'name'"
+        );
+    }
+}

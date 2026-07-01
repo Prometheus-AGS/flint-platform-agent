@@ -38,3 +38,41 @@ impl AuthContext {
         self.roles.iter().any(|r| r == role)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn carries_the_exact_bearer() {
+        let ctx = AuthContext {
+            subject: "op".into(),
+            roles: vec!["viewer".into()],
+            bearer: Some("gate-token-xyz".into()),
+        };
+        assert_eq!(ctx.bearer.as_deref(), Some("gate-token-xyz"));
+        assert!(ctx.has_role("viewer"));
+    }
+
+    #[test]
+    fn no_identity_yields_none_bearer() {
+        let ctx = AuthContext::default();
+        assert!(ctx.bearer.is_none());
+        assert!(!ctx.has_role("anything"));
+    }
+
+    #[test]
+    fn debug_redacts_the_bearer() {
+        let ctx = AuthContext {
+            subject: "op".into(),
+            roles: vec![],
+            bearer: Some("super-secret".into()),
+        };
+        let dbg = format!("{ctx:?}");
+        assert!(
+            !dbg.contains("super-secret"),
+            "bearer must not appear in Debug"
+        );
+        assert!(dbg.contains("<redacted>"));
+    }
+}
