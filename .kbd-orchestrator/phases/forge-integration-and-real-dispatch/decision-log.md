@@ -16,3 +16,7 @@ Backend: OpenSpec. ZeeSpec: n/a. Scope: READ-ONLY (assessment §5).
 - p2-c004-task-store             in-memory RwLock<HashMap>; A2A status/cancel (independent)
 DECISION: AuthContext.bearer (Q2) chosen over separate request-context — smallest change.
 All 4 pass openspec validate. Deps: c001→c002; c003,c004 independent.
+
+### 2026-07-01T04:03:16Z — Plan: ordered 4 changes
+Order: c001 (root) → c002 (needs c001) → c003, c004 (independent). Linear for single-dev.
+First to apply: p2-c001-credential-threading. Waypoint refreshed; plan_complete=true.

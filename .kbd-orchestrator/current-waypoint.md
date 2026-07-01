@@ -1,19 +1,19 @@
 # Current Waypoint
 
-**Phase:** project-and-application-management
+**Phase:** forge-integration-and-real-dispatch
 **Status:** plan_complete
 **Changes:** 0/4 complete
 
 ## Ordered changes
-1. **p1-c001-composition-root** ← next (root)
-2. p1-c002-project-domain-model (root)
-3. p1-c003-a2a-task-catalog (needs c001 + c002)
-4. p1-c004-mcp-transport (needs c003)
+1. **p2-c001-credential-threading** ← next (root)
+2. p2-c002-forge-read-integration (needs c001)
+3. p2-c003-catalog-input-validation (independent)
+4. p2-c004-task-store (independent)
 
 ## Next command
 ```
-/opsx:apply p1-c001-composition-root
+/kbd-execute forge-integration-and-real-dispatch
 ```
 
-Plan: `.kbd-orchestrator/phases/project-and-application-management/plan.md`
-Updated: 2026-06-30T17:16:20Z
+Plan: `.kbd-orchestrator/phases/forge-integration-and-real-dispatch/plan.md`
+Updated: 2026-07-01T04:03:16Z

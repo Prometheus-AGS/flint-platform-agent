@@ -1,14 +1,14 @@
 {
   "phase": "forge-integration-and-real-dispatch",
   "previousPhase": "project-and-application-management",
-  "change": null,
-  "status": "spec_complete",
-  "currentTask": "order the 4 changes; proceed to plan",
-  "nextPendingChange": null,
+  "change": "p2-c001-credential-threading",
+  "status": "plan_complete",
+  "currentTask": "apply p2-c001-credential-threading",
+  "nextPendingChange": "p2-c002-forge-read-integration",
   "sourceTool": "unknown",
-  "exactNextCommand": "/kbd-plan forge-integration-and-real-dispatch",
+  "exactNextCommand": "/kbd-execute forge-integration-and-real-dispatch",
   "parentPhase": null,
   "childPhases": [],
   "childPointer": null,
-  "updatedAt": "2026-07-01T04:01:20Z"
+  "updatedAt": "2026-07-01T04:03:16Z"
 }
