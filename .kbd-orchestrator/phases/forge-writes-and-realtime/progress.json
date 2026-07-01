@@ -4,7 +4,7 @@
   "childPhases": [],
   "childPointer": null,
   "assessment_complete": true,
-  "analyze_complete": false,
+  "analyze_complete": true,
   "spec_complete": false,
   "plan_complete": false,
   "execute_complete": false,
@@ -16,5 +16,5 @@
   "blocked_changes": [],
   "sourceTool": "unknown",
   "createdBy": "kbd-next-phase",
-  "updatedAt": "2026-07-01T16:16:12Z"
+  "updatedAt": "2026-07-01T20:40:27Z"
 }

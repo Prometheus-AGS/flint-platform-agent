@@ -1,0 +1,71 @@
+{
+  "phase": "forge-writes-and-realtime",
+  "mode": "stack-specified",
+  "stack": "Rust workspace (reqwest 0.12, jsonschema, wiremock) integrating flint-forge GraphQL + flint-realtime-fabric HTTP/WS",
+  "generated": "2026-07-01",
+  "research_tiers_used": ["tier3-cargo-search", "tier3-sibling-inspection"],
+  "budget_note": "Minimal phase — writes and fabric health reuse existing deps. Only genuinely new question was the WS client for the stretch subscription goal.",
+  "gaps": [
+    {
+      "gap": "Forge write mutations (project.create / application.define)",
+      "requirements": ["forge writes"],
+      "candidates": [
+        {
+          "name": "reuse fpa-forge graphql_query (reqwest, present)",
+          "version": "n/a",
+          "source": "existing c002 code",
+          "verdict": "REUSE (no new dep)",
+          "confidence": "high",
+          "evidence": "A mutation is the same POST /graphql with a mutation string + bearer. c002's graphql_query already sends Authorization: Bearer and maps 401→Unauthorized; extend to map forge 403 (Keto/Cedar denial) → Unauthorized. Forge enforces authz server-side; the agent forwards and posts.",
+          "notes": "Q1: build typed pg_graphql mutation (recommend) vs proxy raw GraphQL. Decide at spec."
+        }
+      ]
+    },
+    {
+      "gap": "Fabric health (fpa-fabric::health)",
+      "requirements": ["fabric liveness"],
+      "candidates": [
+        {
+          "name": "reqwest GET /healthz",
+          "version": "reqwest 0.12 (present)",
+          "verdict": "REUSE (no new runtime dep)",
+          "confidence": "high",
+          "evidence": "frf-gateway GET /healthz → {status,version}. Mirror c002's forge OpenAPI GET: 2xx→Ok, else Downstream, unreachable→Transport. Add reqwest to fpa-fabric + wiremock dev-dep (already MSRV-verified 1.93)."
+        }
+      ]
+    },
+    {
+      "gap": "Fabric subscription → AG-UI (STRETCH)",
+      "requirements": ["realtime feed"],
+      "candidates": [
+        {
+          "name": "tokio-tungstenite",
+          "version": "0.29 (latest); siblings pin 0.26",
+          "source": "crates.io; used by flint-realtime-fabric (frf-gateway, atproto bridge) AND flint-gate (client/core)",
+          "verdict": "ADOPT-IF-IN-SCOPE (stretch)",
+          "confidence": "medium",
+          "evidence": "House-standard async WS client — strong cross-repo precedent (fabric + gate both use it). Connect to /ws/v1/subscribe, bridge frames to AG-UI SSE. Only needed if the WS subscription goal is pulled in this phase.",
+          "notes": "Pin decision: match siblings (0.26) vs latest (0.29) — verify at execute if adopted. Recommend deferring the WS goal; if kept, adopt tokio-tungstenite."
+        }
+      ]
+    },
+    {
+      "gap": "Write-kind guard + phase-2 test hardening (debt paydown)",
+      "requirements": ["debt #1, #2"],
+      "candidates": [
+        {
+          "name": "internal (no dep)",
+          "verdict": "BUILD",
+          "confidence": "high",
+          "evidence": "Write-kind guard in dispatch_forge (return Downstream for unimplemented write kinds). Unit tests for AuthContext bearer carried/none + MCP tools/list schema advertisement. No libraries involved."
+        }
+      ]
+    }
+  ],
+  "key_adopt_verdicts": [
+    "Forge writes: REUSE c002 graphql_query (no new dep); map 403→Unauthorized",
+    "Fabric health: REUSE reqwest GET /healthz (+ wiremock dev-dep)",
+    "WS subscription (stretch): tokio-tungstenite if in-scope (house standard); recommend defer",
+    "Write-kind guard + test hardening: internal BUILD"
+  ]
+}
