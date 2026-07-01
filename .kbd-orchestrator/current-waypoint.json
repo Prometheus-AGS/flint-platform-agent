@@ -2,13 +2,13 @@
   "phase": "project-and-application-management",
   "previousPhase": null,
   "change": null,
-  "status": "execute_complete",
-  "currentTask": "all 4 changes done; proceed to reflect",
+  "status": "phase_complete",
+  "currentTask": "phase project-and-application-management reflected; start next phase",
   "nextPendingChange": "p1-c002-project-domain-model",
   "sourceTool": "unknown",
-  "exactNextCommand": "/kbd-reflect project-and-application-management",
+  "exactNextCommand": "/kbd-next-phase",
   "parentPhase": null,
   "childPhases": [],
   "childPointer": null,
-  "updatedAt": "2026-07-01T02:08:56Z"
+  "updatedAt": "2026-07-01T02:11:48Z"
 }
