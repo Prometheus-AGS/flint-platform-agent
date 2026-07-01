@@ -2,13 +2,13 @@
   "phase": "forge-integration-and-real-dispatch",
   "previousPhase": "project-and-application-management",
   "change": null,
-  "status": "assessment_ready",
-  "currentTask": "run kbd-assess for forge-integration-and-real-dispatch",
+  "status": "assessment_complete",
+  "currentTask": "review assessment; proceed to analyze",
   "nextPendingChange": null,
   "sourceTool": "unknown",
-  "exactNextCommand": "/kbd-assess forge-integration-and-real-dispatch",
+  "exactNextCommand": "/kbd-analyze forge-integration-and-real-dispatch",
   "parentPhase": null,
   "childPhases": [],
   "childPointer": null,
-  "updatedAt": "2026-07-01T02:25:20Z"
+  "updatedAt": "2026-07-01T03:52:48Z"
 }
