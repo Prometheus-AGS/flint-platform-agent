@@ -2,13 +2,13 @@
   "phase": "forge-integration-and-real-dispatch",
   "previousPhase": "project-and-application-management",
   "change": null,
-  "status": "execute_complete",
-  "currentTask": "all 4 changes done; proceed to reflect",
+  "status": "phase_complete",
+  "currentTask": "phase forge-integration reflected; start next phase",
   "nextPendingChange": "p2-c002-forge-read-integration",
   "sourceTool": "unknown",
-  "exactNextCommand": "/kbd-reflect forge-integration-and-real-dispatch",
+  "exactNextCommand": "/kbd-next-phase",
   "parentPhase": null,
   "childPhases": [],
   "childPointer": null,
-  "updatedAt": "2026-07-01T15:13:20Z"
+  "updatedAt": "2026-07-01T15:16:34Z"
 }
