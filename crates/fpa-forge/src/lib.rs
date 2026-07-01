@@ -26,10 +26,18 @@ impl ForgeAdapter {
 #[async_trait]
 impl ForgeMetadata for ForgeAdapter {
     async fn list_tables(&self) -> Result<serde_json::Value, PortError> {
-        todo!("GET {}/… table metadata", self.base_url)
+        // Not implemented until forge's Quarry gateway ships. Return a handled
+        // error rather than panicking the request (Base Rule: no panics in the
+        // request path).
+        Err(PortError::Downstream(format!(
+            "forge.list_tables not implemented (target {})",
+            self.base_url
+        )))
     }
 
     async fn describe_table(&self, _name: &str) -> Result<serde_json::Value, PortError> {
-        todo!("describe a single table via Quarry")
+        Err(PortError::Downstream(
+            "forge.describe_table not implemented".to_owned(),
+        ))
     }
 }

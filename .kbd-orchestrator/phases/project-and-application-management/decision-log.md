@@ -40,3 +40,13 @@ Built: fpa-protocol a2a_std wrapper, fpa-app catalog (8 kinds) + AuthContext +
 TaskRunner dispatch (permission-before-port + audit), ApiError mapping, A2A route
 wiring. Verified live: viewer→list allowed, viewer→deploy 403, unknown→404,
 audit logs decisions w/o secrets. c003 → done (3/4).
+
+### c004 executed: MCP via canonical mcp-server skill (NOT rmcp) — verdict reversed
+User steer + mcp-server skill: the canonical Prometheus MCP-server pattern is
+hand-rolled JSON-RPC 2.0 over Axum, NOT rmcp's ServerHandler. REVERSED the
+analyze/spec "adopt rmcp" verdict: reverted rmcp deps; extended routes/mcp.rs to
+generate tools/list from the catalog and route tools/call through TaskRunner
+(shared permission+audit). MCP CLIENT (fpa-mcp) = hand-rolled JSON-RPC over
+reqwest (no rmcp). Skill format documented (skills/README.md + list-projects
+example). Also hardened: replaced adapters' todo!() with PortError::Downstream so
+unimplemented planes don't panic the request path. c004 → done (4/4).

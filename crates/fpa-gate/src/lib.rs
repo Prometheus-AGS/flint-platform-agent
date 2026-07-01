@@ -26,6 +26,11 @@ impl GateAdapter {
 #[async_trait]
 impl GateAdmin for GateAdapter {
     async fn list_routes(&self) -> Result<serde_json::Value, PortError> {
-        todo!("GET {}/routes", self.admin_url)
+        // Not implemented until the gate admin client lands; return a handled
+        // error rather than panicking the request path.
+        Err(PortError::Downstream(format!(
+            "gate.list_routes not implemented (admin {})",
+            self.admin_url
+        )))
     }
 }

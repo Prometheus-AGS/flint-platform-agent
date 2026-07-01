@@ -360,7 +360,9 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "fpa-ports",
+ "reqwest",
  "serde_json",
+ "tokio",
  "tracing",
 ]
 

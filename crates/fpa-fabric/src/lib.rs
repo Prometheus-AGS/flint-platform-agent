@@ -26,6 +26,11 @@ impl FabricAdapter {
 #[async_trait]
 impl FabricClient for FabricAdapter {
     async fn health(&self) -> Result<(), PortError> {
-        todo!("probe fabric {} liveness", self.endpoint)
+        // Not implemented until the fabric client transport lands; return a
+        // handled error rather than panicking the request path.
+        Err(PortError::Downstream(format!(
+            "fabric.health not implemented (endpoint {})",
+            self.endpoint
+        )))
     }
 }

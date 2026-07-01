@@ -5,19 +5,27 @@
 //! any MCP host. (The agent's MCP **client** role lives in the `fpa-mcp` adapter,
 //! not here.)
 //!
-//! Stub: parses the JSON-RPC envelope and dispatches the core methods
-//! (`initialize`, `tools/list`, `tools/call`) with placeholder results.
+//! Dispatches the core methods (`initialize`, `tools/list`, `tools/call`).
+//! `tools/list` is generated from the A2A task catalog and `tools/call` routes
+//! through the shared `TaskRunner` (same permission + audit path as A2A).
 
-use axum::{Json, Router, routing::post};
+use crate::state::AppState;
+use axum::{Json, Router, extract::State, routing::post};
+use fpa_app::{AuthContext, catalog};
+use fpa_domain::{AdminTask, OperatorId, TaskId, TaskState};
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
+use uuid::Uuid;
 
 /// JSON-RPC protocol version string.
 const JSONRPC_VERSION: &str = "2.0";
 /// JSON-RPC error code for an unrecognized method.
 const METHOD_NOT_FOUND: i64 = -32601;
+/// JSON-RPC error code for invalid params.
+const INVALID_PARAMS: i64 = -32602;
 
 /// Routes for the MCP server surface.
-pub fn router() -> Router<std::sync::Arc<crate::state::AppState>> {
+pub fn router() -> Router<Arc<AppState>> {
     Router::new().route("/mcp", post(rpc))
 }
 
@@ -30,7 +38,6 @@ struct RpcRequest {
     id: Option<serde_json::Value>,
     method: String,
     #[serde(default)]
-    #[allow(dead_code)]
     params: serde_json::Value,
 }
 
@@ -76,26 +83,104 @@ impl RpcResponse {
     }
 }
 
-/// `POST /mcp` — JSON-RPC 2.0 entry point.
+/// `POST /mcp` — JSON-RPC 2.0 entry point (HTTP-Streaming transport).
 ///
-/// Stub: dispatches the core MCP methods. The real handler wires `tools/list`
-/// and `tools/call` to the fabric administrative tool catalog and streams large
-/// results back over the HTTP-Streaming transport.
-async fn rpc(Json(req): Json<RpcRequest>) -> Json<RpcResponse> {
+/// `tools/list` and `tools/call` are backed by the A2A task catalog and the
+/// shared `TaskRunner`, so MCP tool calls follow the same permission + audit path
+/// as the A2A surface.
+async fn rpc(State(state): State<Arc<AppState>>, Json(req): Json<RpcRequest>) -> Json<RpcResponse> {
+    let id = req.id.clone();
     let response = match req.method.as_str() {
         "initialize" => RpcResponse::ok(
-            req.id,
+            id,
             serde_json::json!({
                 "protocolVersion": "2025-06-18",
                 "capabilities": { "tools": {} },
                 "serverInfo": { "name": "flint-platform-agent", "version": env!("CARGO_PKG_VERSION") }
             }),
         ),
-        "tools/list" => RpcResponse::ok(req.id, serde_json::json!({ "tools": [] })),
-        "tools/call" => {
-            RpcResponse::err(req.id, METHOD_NOT_FOUND, "tools/call not yet implemented")
-        }
-        other => RpcResponse::err(req.id, METHOD_NOT_FOUND, format!("unknown method: {other}")),
+        "tools/list" => RpcResponse::ok(id, tool_definitions()),
+        "tools/call" => match call_tool(&state, &req.params).await {
+            Ok(result) => RpcResponse::ok(id, result),
+            Err(e) => RpcResponse::err(id, e.code, e.message),
+        },
+        other => RpcResponse::err(id, METHOD_NOT_FOUND, format!("unknown method: {other}")),
     };
     Json(response)
+}
+
+/// `tools/list` payload — one MCP tool per catalogued task kind.
+///
+/// Guarantees `tools/list` stays in sync with `tools/call` (both read `catalog`).
+fn tool_definitions() -> serde_json::Value {
+    let tools: Vec<serde_json::Value> = catalog::CATALOG
+        .iter()
+        .map(|entry| {
+            serde_json::json!({
+                "name": entry.kind,
+                "description": entry.description,
+                // Minimal object schema; per-kind input schemas are a carry-forward.
+                "inputSchema": { "type": "object" }
+            })
+        })
+        .collect();
+    serde_json::json!({ "tools": tools })
+}
+
+/// A dispatch error carrying a JSON-RPC code.
+struct CallError {
+    code: i64,
+    message: String,
+}
+
+/// Execute a `tools/call` by routing the named tool through the `TaskRunner`.
+async fn call_tool(
+    state: &Arc<AppState>,
+    params: &serde_json::Value,
+) -> Result<serde_json::Value, CallError> {
+    let name = params
+        .get("name")
+        .and_then(|v| v.as_str())
+        .ok_or(CallError {
+            code: INVALID_PARAMS,
+            message: "tools/call requires a 'name'".to_owned(),
+        })?;
+
+    if catalog::lookup(name).is_none() {
+        return Err(CallError {
+            code: METHOD_NOT_FOUND,
+            message: format!("unknown tool: {name}"),
+        });
+    }
+
+    let arguments = params
+        .get("arguments")
+        .cloned()
+        .unwrap_or(serde_json::Value::Null);
+
+    let task = AdminTask {
+        id: TaskId(Uuid::new_v4()),
+        operator: OperatorId(Uuid::new_v4()),
+        kind: name.to_owned(),
+        input: arguments,
+        state: TaskState::Submitted,
+    };
+    // MCP transport carries no gate JWT this phase; callers reach the MCP server
+    // over a trusted path. Gate-identity propagation over MCP is a later change.
+    let auth = AuthContext {
+        subject: "mcp-client".to_owned(),
+        roles: vec!["viewer".to_owned(), "operator".to_owned()],
+    };
+
+    match state.runner.run(&task, &auth).await {
+        // MCP tool result shape: content array of text blocks.
+        Ok(result) => Ok(serde_json::json!({
+            "content": [{ "type": "text", "text": result.to_string() }],
+            "isError": false
+        })),
+        Err(e) => Ok(serde_json::json!({
+            "content": [{ "type": "text", "text": e.to_string() }],
+            "isError": true
+        })),
+    }
 }
