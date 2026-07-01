@@ -80,7 +80,10 @@ impl TaskRunner {
         // as the ports gain real implementations; here we route by target so the
         // contract + permission gate are exercised end-to-end.
         let outcome = match entry.target {
-            TargetPort::Forge => self.dispatch_forge(entry.kind).await,
+            TargetPort::Forge => {
+                self.dispatch_forge(entry.kind, auth.bearer.as_deref())
+                    .await
+            }
             TargetPort::Fabric => self
                 .fabric
                 .health()
@@ -95,14 +98,19 @@ impl TaskRunner {
         Ok(result)
     }
 
-    /// Route a forge-targeted task kind to the appropriate forge port method.
-    async fn dispatch_forge(&self, kind: &str) -> Result<serde_json::Value, fpa_ports::PortError> {
+    /// Route a forge-targeted task kind to the appropriate forge port method,
+    /// forwarding the operator's bearer for RLS.
+    async fn dispatch_forge(
+        &self,
+        kind: &str,
+        bearer: Option<&str>,
+    ) -> Result<serde_json::Value, fpa_ports::PortError> {
         // `describe` needs a target; everything else is a safe list read until
         // forge's gateway lands richer create/define calls (project.create, etc.).
         if matches!(kind, "forge.table.describe" | "project.inspect") {
-            self.forge.describe_table("<unspecified>").await
+            self.forge.describe_table("<unspecified>", bearer).await
         } else {
-            self.forge.list_tables().await
+            self.forge.list_tables(bearer).await
         }
     }
 }
@@ -123,11 +131,15 @@ mod tests {
     }
     #[async_trait]
     impl ForgeMetadata for FakeForge {
-        async fn list_tables(&self) -> Result<serde_json::Value, PortError> {
+        async fn list_tables(&self, _bearer: Option<&str>) -> Result<serde_json::Value, PortError> {
             self.called.store(true, Ordering::SeqCst);
             Ok(serde_json::json!({"tables": []}))
         }
-        async fn describe_table(&self, _: &str) -> Result<serde_json::Value, PortError> {
+        async fn describe_table(
+            &self,
+            _: &str,
+            _bearer: Option<&str>,
+        ) -> Result<serde_json::Value, PortError> {
             self.called.store(true, Ordering::SeqCst);
             Ok(serde_json::json!({}))
         }
@@ -184,6 +196,7 @@ mod tests {
         AuthContext {
             subject: "op-1".into(),
             roles: roles.iter().map(|s| (*s).to_owned()).collect(),
+            bearer: Some("test-bearer".into()),
         }
     }
 

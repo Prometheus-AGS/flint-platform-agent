@@ -57,6 +57,7 @@ async fn submit(
     let auth = AuthContext {
         subject: operator.subject.clone(),
         roles: operator.roles.clone(),
+        bearer: Some(operator.bearer.clone()),
     };
 
     match state.runner.run(&task, &auth).await {

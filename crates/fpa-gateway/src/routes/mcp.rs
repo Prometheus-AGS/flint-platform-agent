@@ -9,7 +9,7 @@
 //! `tools/list` is generated from the A2A task catalog and `tools/call` routes
 //! through the shared `TaskRunner` (same permission + audit path as A2A).
 
-use crate::state::AppState;
+use crate::{identity::OperatorContext, state::AppState};
 use axum::{Json, Router, extract::State, routing::post};
 use fpa_app::{AuthContext, catalog};
 use fpa_domain::{AdminTask, OperatorId, TaskId, TaskState};
@@ -88,7 +88,13 @@ impl RpcResponse {
 /// `tools/list` and `tools/call` are backed by the A2A task catalog and the
 /// shared `TaskRunner`, so MCP tool calls follow the same permission + audit path
 /// as the A2A surface.
-async fn rpc(State(state): State<Arc<AppState>>, Json(req): Json<RpcRequest>) -> Json<RpcResponse> {
+async fn rpc(
+    State(state): State<Arc<AppState>>,
+    // Optional: `initialize`/`tools/list` are unauthenticated handshake/discovery;
+    // `tools/call` requires the gate identity (enforced in `call_tool`).
+    operator: Option<OperatorContext>,
+    Json(req): Json<RpcRequest>,
+) -> Json<RpcResponse> {
     let id = req.id.clone();
     let response = match req.method.as_str() {
         "initialize" => RpcResponse::ok(
@@ -100,7 +106,7 @@ async fn rpc(State(state): State<Arc<AppState>>, Json(req): Json<RpcRequest>) ->
             }),
         ),
         "tools/list" => RpcResponse::ok(id, tool_definitions()),
-        "tools/call" => match call_tool(&state, &req.params).await {
+        "tools/call" => match call_tool(&state, operator.as_ref(), &req.params).await {
             Ok(result) => RpcResponse::ok(id, result),
             Err(e) => RpcResponse::err(id, e.code, e.message),
         },
@@ -134,10 +140,21 @@ struct CallError {
 }
 
 /// Execute a `tools/call` by routing the named tool through the `TaskRunner`.
+///
+/// Requires the caller's gate identity (a gate JWT on `POST /mcp`); absence is
+/// unauthenticated, never an implicit grant.
 async fn call_tool(
     state: &Arc<AppState>,
+    operator: Option<&OperatorContext>,
     params: &serde_json::Value,
 ) -> Result<serde_json::Value, CallError> {
+    let Some(operator) = operator else {
+        return Err(CallError {
+            code: INVALID_PARAMS,
+            message: "tools/call requires gate identity (Authorization: Bearer)".to_owned(),
+        });
+    };
+
     let name = params
         .get("name")
         .and_then(|v| v.as_str())
@@ -165,11 +182,11 @@ async fn call_tool(
         input: arguments,
         state: TaskState::Submitted,
     };
-    // MCP transport carries no gate JWT this phase; callers reach the MCP server
-    // over a trusted path. Gate-identity propagation over MCP is a later change.
+    // Real caller identity from the gate JWT on POST /mcp (p2-c001).
     let auth = AuthContext {
-        subject: "mcp-client".to_owned(),
-        roles: vec!["viewer".to_owned(), "operator".to_owned()],
+        subject: operator.subject.clone(),
+        roles: operator.roles.clone(),
+        bearer: Some(operator.bearer.clone()),
     };
 
     match state.runner.run(&task, &auth).await {

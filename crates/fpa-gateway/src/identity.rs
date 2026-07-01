@@ -11,7 +11,7 @@
 //! is wired. This is a documented stopgap, not the end state.
 
 use axum::{
-    extract::FromRequestParts,
+    extract::{FromRequestParts, OptionalFromRequestParts},
     http::{StatusCode, request::Parts},
 };
 use jsonwebtoken::{DecodingKey, Validation, decode, decode_header};
@@ -41,28 +41,32 @@ pub struct GateClaims {
 
 /// The authenticated operator for a request, derived solely from gate claims.
 ///
-/// `roles`/`tenant_id`/`signature_verified` and [`Self::has_role`] are produced
-/// here (the c001 identity contract) but consumed by the permission checks in
-/// `p1-c003-a2a-task-catalog`; `#[allow(dead_code)]` marks that seam explicitly
-/// rather than dropping fields the next change needs.
-#[derive(Debug, Clone)]
+/// Retains the **raw bearer** so it can be forwarded to an RLS-enforcing
+/// downstream (forge) via `p2-c001` credential threading. The token is never
+/// logged.
+#[derive(Clone)]
 pub struct OperatorContext {
     pub subject: String,
-    #[allow(dead_code)] // consumed by permission checks in p1-c003
     pub roles: Vec<String>,
-    #[allow(dead_code)] // consumed by tenant-scoped dispatch in p1-c003
+    #[allow(dead_code)] // reserved for tenant-scoped dispatch
     pub tenant_id: Option<String>,
     /// True only when the JWT signature was verified against a configured key.
-    #[allow(dead_code)] // surfaced in audit records in p1-c003
+    #[allow(dead_code)] // surfaced in audit records
     pub signature_verified: bool,
+    /// The raw gate-minted bearer, forwarded downstream for RLS. Never logged.
+    pub bearer: String,
 }
 
-impl OperatorContext {
-    /// Whether the operator holds a given role.
-    #[allow(dead_code)] // used by permission enforcement in p1-c003
-    #[must_use]
-    pub fn has_role(&self, role: &str) -> bool {
-        self.roles.iter().any(|r| r == role)
+// Manual Debug that redacts the bearer — deriving Debug would print the token.
+impl std::fmt::Debug for OperatorContext {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("OperatorContext")
+            .field("subject", &self.subject)
+            .field("roles", &self.roles)
+            .field("tenant_id", &self.tenant_id)
+            .field("signature_verified", &self.signature_verified)
+            .field("bearer", &"<redacted>")
+            .finish()
     }
 }
 
@@ -100,7 +104,26 @@ impl FromRequestParts<Arc<AppState>> for OperatorContext {
             roles: claims.0.roles,
             tenant_id: claims.0.tenant_id,
             signature_verified: claims.1,
+            bearer: token,
         })
+    }
+}
+
+/// Optional extraction: absent/invalid gate identity yields `None` rather than a
+/// rejection, so unauthenticated handshake endpoints (MCP `initialize`,
+/// `tools/list`) still work while `tools/call` can require `Some`.
+impl OptionalFromRequestParts<Arc<AppState>> for OperatorContext {
+    type Rejection = std::convert::Infallible;
+
+    async fn from_request_parts(
+        parts: &mut Parts,
+        state: &Arc<AppState>,
+    ) -> Result<Option<Self>, Self::Rejection> {
+        Ok(
+            <Self as FromRequestParts<Arc<AppState>>>::from_request_parts(parts, state)
+                .await
+                .ok(),
+        )
     }
 }
 
@@ -187,14 +210,19 @@ mod tests {
     }
 
     #[test]
-    fn has_role_checks_membership() {
+    fn debug_redacts_bearer() {
         let ctx = OperatorContext {
             subject: "op-123".into(),
-            roles: vec!["admin".into()],
+            roles: vec![],
             tenant_id: None,
-            signature_verified: true,
+            signature_verified: false,
+            bearer: "super-secret-token".into(),
         };
-        assert!(ctx.has_role("admin"));
-        assert!(!ctx.has_role("nope"));
+        let dbg = format!("{ctx:?}");
+        assert!(
+            !dbg.contains("super-secret-token"),
+            "bearer must be redacted in Debug"
+        );
+        assert!(dbg.contains("<redacted>"));
     }
 }
