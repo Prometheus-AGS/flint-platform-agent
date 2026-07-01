@@ -23,4 +23,16 @@ pub trait ForgeMetadata: Send + Sync {
         name: &str,
         bearer: Option<&str>,
     ) -> Result<serde_json::Value, PortError>;
+
+    /// Create a row in `collection` via a pg_graphql insert mutation under the
+    /// operator bearer. Forge (RLS + Keto/Cedar) is the authorization authority.
+    ///
+    /// A `None` bearer is rejected (`Unauthorized`) — writes always require the
+    /// operator's identity.
+    async fn create_entity(
+        &self,
+        collection: &str,
+        object: serde_json::Value,
+        bearer: Option<&str>,
+    ) -> Result<serde_json::Value, PortError>;
 }

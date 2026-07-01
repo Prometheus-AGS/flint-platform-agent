@@ -5,9 +5,10 @@
 //! - **data** ← `POST {base}/graphql` forwarding the operator's gate bearer as
 //!   `Authorization: Bearer` so forge applies RLS (`rls_from_bearer`).
 //!
-//! Forge is the source of truth for what entities exist. The adapter forwards the
-//! operator's verified bearer; it never fabricates a credential or applies RLS
-//! itself. Read-only this phase — no forge mutations.
+//! Writes go through pg_graphql insert mutations on the same `/graphql` endpoint
+//! (`create_entity`), also under the operator bearer — forge (RLS + Keto/Cedar)
+//! is the authorization authority; the adapter forwards the bearer and never
+//! fabricates a credential or replicates authz.
 
 use async_trait::async_trait;
 use fpa_ports::{ForgeMetadata, PortError};
@@ -82,17 +83,30 @@ impl ForgeMetadata for ForgeAdapter {
             .cloned()
             .ok_or_else(|| PortError::Downstream(format!("no such table: {name}")))
     }
+
+    async fn create_entity(
+        &self,
+        collection: &str,
+        object: Value,
+        bearer: Option<&str>,
+    ) -> Result<Value, PortError> {
+        // pg_graphql insert: `insertInto<Collection>Collection(objects: [$obj]) { records { ... } }`
+        // Forge (RLS + Keto/Cedar) authorizes server-side; we forward the bearer.
+        let mutation = format!(
+            "mutation Insert($objects: [{collection}InsertInput!]!) \
+             {{ insertInto{collection}Collection(objects: $objects) {{ affectedCount }} }}"
+        );
+        let variables = json!({ "objects": [object] });
+        graphql_exec(&self.http, &self.base_url, bearer, &mutation, variables).await
+    }
 }
 
-/// POST a GraphQL query to forge under the operator's bearer (RLS applies).
+/// POST a GraphQL **query** to forge under the operator's bearer (RLS applies).
 ///
-/// Public helper for data reads: forwards `Authorization: Bearer <bearer>` so
-/// forge's `rls_from_bearer` builds the RLS context. A missing bearer is a hard
-/// error — the agent never queries data without the operator's identity.
+/// Thin wrapper over [`graphql_exec`] for read queries.
 ///
 /// # Errors
-/// - [`PortError::Unauthorized`] on a missing bearer or a forge 401.
-/// - [`PortError::Transport`] / [`PortError::Decode`] on transport/body failures.
+/// See [`graphql_exec`].
 pub async fn graphql_query(
     http: &reqwest::Client,
     base_url: &str,
@@ -100,11 +114,33 @@ pub async fn graphql_query(
     query: &str,
     variables: Value,
 ) -> Result<Value, PortError> {
+    graphql_exec(http, base_url, bearer, query, variables).await
+}
+
+/// POST an arbitrary GraphQL operation (query or mutation) to forge's `/graphql`
+/// under the operator's bearer. Forge applies RLS + (for mutations) Keto/Cedar;
+/// this helper forwards the bearer and maps status codes onto [`PortError`].
+///
+/// A missing bearer is rejected — the agent never calls `/graphql` without the
+/// operator's identity.
+///
+/// # Errors
+/// - [`PortError::Unauthorized`] on a missing bearer, a forge **401** (bad token),
+///   or a forge **403** (Keto/Cedar policy denial — distinguished in the message).
+/// - [`PortError::Downstream`] on other non-2xx statuses.
+/// - [`PortError::Transport`] / [`PortError::Decode`] on transport/body failures.
+pub async fn graphql_exec(
+    http: &reqwest::Client,
+    base_url: &str,
+    bearer: Option<&str>,
+    operation: &str,
+    variables: Value,
+) -> Result<Value, PortError> {
     let bearer = bearer.ok_or_else(|| {
-        PortError::Unauthorized("forge data read requires the operator bearer".to_owned())
+        PortError::Unauthorized("forge /graphql requires the operator bearer".to_owned())
     })?;
     let url = format!("{}/graphql", base_url.trim_end_matches('/'));
-    let body = json!({ "query": query, "variables": variables, "operationName": Value::Null });
+    let body = json!({ "query": operation, "variables": variables, "operationName": Value::Null });
     let resp = http
         .post(&url)
         .bearer_auth(bearer)
@@ -112,16 +148,23 @@ pub async fn graphql_query(
         .send()
         .await
         .map_err(|e| PortError::Transport(e.to_string()))?;
-    if resp.status() == reqwest::StatusCode::UNAUTHORIZED {
-        return Err(PortError::Unauthorized(
-            "forge rejected the bearer".to_owned(),
-        ));
-    }
-    if !resp.status().is_success() {
-        return Err(PortError::Downstream(format!(
-            "forge /graphql returned {}",
-            resp.status()
-        )));
+    match resp.status() {
+        reqwest::StatusCode::UNAUTHORIZED => {
+            return Err(PortError::Unauthorized(
+                "forge rejected the bearer".to_owned(),
+            ));
+        }
+        reqwest::StatusCode::FORBIDDEN => {
+            return Err(PortError::Unauthorized(
+                "forge policy denied (Keto/Cedar)".to_owned(),
+            ));
+        }
+        s if !s.is_success() => {
+            return Err(PortError::Downstream(format!(
+                "forge /graphql returned {s}"
+            )));
+        }
+        _ => {}
     }
     resp.json()
         .await
@@ -234,5 +277,54 @@ mod tests {
         let adapter = ForgeAdapter::new("http://127.0.0.1:1");
         let err = adapter.list_tables(None).await.unwrap_err();
         assert!(matches!(err, PortError::Transport(_)));
+    }
+
+    #[tokio::test]
+    async fn create_entity_posts_mutation_with_bearer() {
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/graphql"))
+            .and(header("authorization", "Bearer tok"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(
+                json!({"data": {"insertIntoProjectsCollection": {"affectedCount": 1}}}),
+            ))
+            .mount(&server)
+            .await;
+
+        let adapter = ForgeAdapter::new(server.uri());
+        let out = adapter
+            .create_entity("Projects", json!({"name": "p1"}), Some("tok"))
+            .await
+            .expect("create");
+        assert_eq!(
+            out["data"]["insertIntoProjectsCollection"]["affectedCount"],
+            1
+        );
+    }
+
+    #[tokio::test]
+    async fn create_entity_forge_403_is_unauthorized() {
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/graphql"))
+            .respond_with(ResponseTemplate::new(403))
+            .mount(&server)
+            .await;
+        let adapter = ForgeAdapter::new(server.uri());
+        let err = adapter
+            .create_entity("Projects", json!({}), Some("tok"))
+            .await
+            .unwrap_err();
+        assert!(matches!(err, PortError::Unauthorized(_)));
+    }
+
+    #[tokio::test]
+    async fn create_entity_missing_bearer_is_unauthorized() {
+        let adapter = ForgeAdapter::new("http://unused");
+        let err = adapter
+            .create_entity("Projects", json!({}), None)
+            .await
+            .unwrap_err();
+        assert!(matches!(err, PortError::Unauthorized(_)));
     }
 }

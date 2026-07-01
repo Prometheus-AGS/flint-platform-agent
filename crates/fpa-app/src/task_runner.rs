@@ -97,7 +97,7 @@ impl TaskRunner {
         // contract + permission gate are exercised end-to-end.
         let outcome = match entry.target {
             TargetPort::Forge => {
-                self.dispatch_forge(entry.kind, auth.bearer.as_deref())
+                self.dispatch_forge(entry.kind, &input, auth.bearer.as_deref())
                     .await
             }
             TargetPort::Fabric => self
@@ -115,18 +115,37 @@ impl TaskRunner {
     }
 
     /// Route a forge-targeted task kind to the appropriate forge port method,
-    /// forwarding the operator's bearer for RLS.
+    /// forwarding the operator's bearer for RLS. Reads map to metadata/queries;
+    /// writes map to a pg_graphql insert. **Unmapped write kinds return a clean
+    /// `Downstream("write API pending")` — never a silent read fallback.**
     async fn dispatch_forge(
         &self,
         kind: &str,
+        input: &serde_json::Value,
         bearer: Option<&str>,
     ) -> Result<serde_json::Value, fpa_ports::PortError> {
-        // `describe` needs a target; everything else is a safe list read until
-        // forge's gateway lands richer create/define calls (project.create, etc.).
-        if matches!(kind, "forge.table.describe" | "project.inspect") {
-            self.forge.describe_table("<unspecified>", bearer).await
-        } else {
-            self.forge.list_tables(bearer).await
+        match kind {
+            // Reads
+            "forge.table.describe" | "project.inspect" => {
+                self.forge.describe_table("<unspecified>", bearer).await
+            }
+            "forge.table.list" | "project.list" => self.forge.list_tables(bearer).await,
+            // Writes → pg_graphql insert. `project.create` inserts into the
+            // Projects collection; the object is the validated task input.
+            "project.create" => {
+                self.forge
+                    .create_entity("Projects", input.clone(), bearer)
+                    .await
+            }
+            "application.define" => {
+                self.forge
+                    .create_entity("Applications", input.clone(), bearer)
+                    .await
+            }
+            // Any other forge kind that is write-oriented has no mapping yet.
+            other => Err(fpa_ports::PortError::Downstream(format!(
+                "write API pending: forge kind '{other}' not implemented"
+            ))),
         }
     }
 }
@@ -158,6 +177,15 @@ mod tests {
         ) -> Result<serde_json::Value, PortError> {
             self.called.store(true, Ordering::SeqCst);
             Ok(serde_json::json!({}))
+        }
+        async fn create_entity(
+            &self,
+            collection: &str,
+            _object: serde_json::Value,
+            _bearer: Option<&str>,
+        ) -> Result<serde_json::Value, PortError> {
+            self.called.store(true, Ordering::SeqCst);
+            Ok(serde_json::json!({ "created_in": collection }))
         }
     }
     struct FakeFabric;
@@ -266,6 +294,19 @@ mod tests {
             .await
             .expect("valid input runs");
         assert!(forge.called.load(Ordering::SeqCst));
+    }
+
+    #[tokio::test]
+    async fn create_kind_routes_to_write() {
+        let forge = Arc::new(FakeForge::default());
+        let r = runner_with(forge.clone());
+        // project.create requires the "operator" role.
+        let out = r
+            .run(&task("project.create"), &auth(&["operator"]))
+            .await
+            .unwrap();
+        assert!(forge.called.load(Ordering::SeqCst));
+        assert_eq!(out["created_in"], "Projects");
     }
 
     #[tokio::test]
