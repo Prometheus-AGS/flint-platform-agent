@@ -42,6 +42,10 @@ impl ApiError {
     pub fn not_found(m: impl Into<String>) -> Self {
         Self::new(StatusCode::NOT_FOUND, m)
     }
+    /// 409 Conflict.
+    pub fn conflict(m: impl Into<String>) -> Self {
+        Self::new(StatusCode::CONFLICT, m)
+    }
 }
 
 impl IntoResponse for ApiError {

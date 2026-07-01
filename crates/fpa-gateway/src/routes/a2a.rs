@@ -13,7 +13,7 @@ use axum::{
     extract::{Path, State},
     routing::{get, post},
 };
-use fpa_app::{AppError, AuthContext};
+use fpa_app::{AppError, AuthContext, CancelOutcome, TaskRecord};
 use fpa_domain::{AdminTask, OperatorId, TaskId, TaskState};
 use fpa_protocol::TaskEvent;
 use serde::Deserialize;
@@ -60,7 +60,29 @@ async fn submit(
         bearer: Some(operator.bearer.clone()),
     };
 
-    match state.runner.run(&task, &auth).await {
+    let kind = task.kind.clone();
+    let outcome = state.runner.run(&task, &auth).await;
+
+    // Record the terminal state so status/cancel can query it.
+    let final_state = match &outcome {
+        Ok(_) => TaskState::Completed,
+        Err(AppError::Port(e)) => TaskState::Failed {
+            reason: e.to_string(),
+        },
+        Err(e) => TaskState::Failed {
+            reason: e.to_string(),
+        },
+    };
+    state
+        .tasks
+        .record(TaskRecord {
+            id: task.id,
+            kind,
+            state: final_state,
+        })
+        .await;
+
+    match outcome {
         Ok(result) => Ok(Json(TaskEvent::Completed {
             task_id: task.id,
             result,
@@ -82,18 +104,54 @@ async fn submit(
     }
 }
 
-/// `GET /a2a/tasks/{task_id}` — fetch current task status.
-async fn status(Path(task_id): Path<Uuid>) -> Json<TaskEvent> {
-    Json(TaskEvent::StatusUpdate {
-        task_id: TaskId(task_id),
-        message: "task status lookup not yet implemented".to_owned(),
-    })
+/// Project a recorded [`TaskState`] onto an outward [`TaskEvent`].
+fn state_to_event(task_id: TaskId, state: &TaskState) -> TaskEvent {
+    match state {
+        TaskState::Completed => TaskEvent::Completed {
+            task_id,
+            result: serde_json::Value::Null,
+        },
+        TaskState::Failed { reason } => TaskEvent::Failed {
+            task_id,
+            reason: reason.clone(),
+        },
+        TaskState::Canceled => TaskEvent::Failed {
+            task_id,
+            reason: "canceled".to_owned(),
+        },
+        other => TaskEvent::StatusUpdate {
+            task_id,
+            message: format!("{other:?}"),
+        },
+    }
+}
+
+/// `GET /a2a/tasks/{task_id}` — fetch current task status from the store.
+async fn status(
+    State(state): State<Arc<AppState>>,
+    Path(task_id): Path<Uuid>,
+) -> Result<Json<TaskEvent>, ApiError> {
+    let id = TaskId(task_id);
+    match state.tasks.get(id).await {
+        Some(rec) => Ok(Json(state_to_event(id, &rec.state))),
+        None => Err(ApiError::not_found(format!("no such task: {task_id}"))),
+    }
 }
 
 /// `POST /a2a/tasks/{task_id}/cancel` — request cancellation of a task.
-async fn cancel(Path(task_id): Path<Uuid>) -> Json<TaskEvent> {
-    Json(TaskEvent::StatusUpdate {
-        task_id: TaskId(task_id),
-        message: "task cancellation not yet implemented".to_owned(),
-    })
+async fn cancel(
+    State(state): State<Arc<AppState>>,
+    Path(task_id): Path<Uuid>,
+) -> Result<Json<TaskEvent>, ApiError> {
+    let id = TaskId(task_id);
+    match state.tasks.cancel(id).await {
+        CancelOutcome::Canceled => Ok(Json(TaskEvent::Failed {
+            task_id: id,
+            reason: "canceled".to_owned(),
+        })),
+        CancelOutcome::AlreadyTerminal => {
+            Err(ApiError::conflict("task already terminal; cannot cancel"))
+        }
+        CancelOutcome::NotFound => Err(ApiError::not_found(format!("no such task: {task_id}"))),
+    }
 }

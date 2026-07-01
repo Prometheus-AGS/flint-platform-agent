@@ -5,7 +5,7 @@
 //! shared state. This is the only place concrete adapters are wired.
 
 use crate::config::GatewayConfig;
-use fpa_app::TaskRunner;
+use fpa_app::{TaskRunner, TaskStore};
 use fpa_fabric::FabricAdapter;
 use fpa_forge::ForgeAdapter;
 use fpa_gate::GateAdapter;
@@ -18,6 +18,8 @@ pub struct AppState {
     pub runner: Arc<TaskRunner>,
     /// Resolved configuration.
     pub config: Arc<GatewayConfig>,
+    /// In-memory store of submitted tasks (A2A status/cancel).
+    pub tasks: Arc<TaskStore>,
 }
 
 impl AppState {
@@ -30,7 +32,7 @@ impl AppState {
         let gate = Arc::new(GateAdapter::new(config.gate_admin_url.clone()));
         let mcp = Arc::new(McpClientAdapter::new(
             // No downstream MCP server configured yet; placeholder endpoint.
-            // Multi-server composition lands in p1-c004.
+            // Multi-server composition is a carry-forward.
             String::new(),
         ));
 
@@ -38,6 +40,7 @@ impl AppState {
         Self {
             runner,
             config: Arc::new(config),
+            tasks: Arc::new(TaskStore::default()),
         }
     }
 }
