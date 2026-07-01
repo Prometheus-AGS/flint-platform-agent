@@ -2,13 +2,13 @@
   "phase": "forge-writes-and-realtime",
   "previousPhase": "forge-integration-and-real-dispatch",
   "change": null,
-  "status": "assessment_ready",
-  "currentTask": "run kbd-assess for forge-writes-and-realtime",
+  "status": "assessment_complete",
+  "currentTask": "review assessment; proceed to analyze",
   "nextPendingChange": null,
   "sourceTool": "unknown",
-  "exactNextCommand": "/kbd-assess forge-writes-and-realtime",
+  "exactNextCommand": "/kbd-analyze forge-writes-and-realtime",
   "parentPhase": null,
   "childPhases": [],
   "childPointer": null,
-  "updatedAt": "2026-07-01T15:46:39Z"
+  "updatedAt": "2026-07-01T16:16:12Z"
 }
