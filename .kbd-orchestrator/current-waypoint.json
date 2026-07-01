@@ -1,14 +1,14 @@
 {
-  "phase": "forge-integration-and-real-dispatch",
-  "previousPhase": "project-and-application-management",
+  "phase": "forge-writes-and-realtime",
+  "previousPhase": "forge-integration-and-real-dispatch",
   "change": null,
-  "status": "phase_complete",
-  "currentTask": "phase forge-integration reflected; start next phase",
-  "nextPendingChange": "p2-c002-forge-read-integration",
+  "status": "assessment_ready",
+  "currentTask": "run kbd-assess for forge-writes-and-realtime",
+  "nextPendingChange": null,
   "sourceTool": "unknown",
-  "exactNextCommand": "/kbd-next-phase",
+  "exactNextCommand": "/kbd-assess forge-writes-and-realtime",
   "parentPhase": null,
   "childPhases": [],
   "childPointer": null,
-  "updatedAt": "2026-07-01T15:16:34Z"
+  "updatedAt": "2026-07-01T15:46:39Z"
 }
