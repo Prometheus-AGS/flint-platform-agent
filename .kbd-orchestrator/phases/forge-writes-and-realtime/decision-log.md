@@ -12,3 +12,7 @@ Per user "follow your recommendation": build typed mutations (Q1), DEFER WS (Q3)
 - p3-c003-test-hardening          close phase-2 test-coverage gaps (debt #2); test-only capability spec
 WS subscription NOT specced (deferred to a later realtime phase per recommendation).
 All 3 pass openspec validate. Deps: c001,c002,c003 all independent.
+
+### 2026-07-01T20:46:44Z — Plan: ordered 3 (all independent)
+Order by value/risk (no deps): c001 writes → c002 health → c003 test-hardening.
+First: p3-c001-forge-write-mutations. WS deferred. Waypoint refreshed.

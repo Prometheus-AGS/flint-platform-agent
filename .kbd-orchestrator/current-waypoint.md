@@ -1,19 +1,18 @@
 # Current Waypoint
 
-**Phase:** forge-integration-and-real-dispatch
+**Phase:** forge-writes-and-realtime
 **Status:** plan_complete
-**Changes:** 0/4 complete
+**Changes:** 0/3 complete
 
-## Ordered changes
-1. **p2-c001-credential-threading** ← next (root)
-2. p2-c002-forge-read-integration (needs c001)
-3. p2-c003-catalog-input-validation (independent)
-4. p2-c004-task-store (independent)
+## Ordered changes (all independent)
+1. **p3-c001-forge-write-mutations** ← next
+2. p3-c002-fabric-health
+3. p3-c003-test-hardening
 
 ## Next command
 ```
-/kbd-execute forge-integration-and-real-dispatch
+/kbd-execute forge-writes-and-realtime
 ```
 
-Plan: `.kbd-orchestrator/phases/forge-integration-and-real-dispatch/plan.md`
-Updated: 2026-07-01T04:03:16Z
+Plan: `.kbd-orchestrator/phases/forge-writes-and-realtime/plan.md`
+Updated: 2026-07-01T20:46:44Z
