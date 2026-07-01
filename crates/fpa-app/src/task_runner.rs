@@ -74,6 +74,22 @@ impl TaskRunner {
             )));
         }
 
+        // Validate input against the kind's JSON Schema before any port call.
+        // Treat null/absent input as an empty object so no-argument calls pass an
+        // object schema while required fields are still enforced when expected.
+        let schema = entry.input_schema();
+        let input = if task.input.is_null() {
+            serde_json::json!({})
+        } else {
+            task.input.clone()
+        };
+        if let Err(err) = jsonschema::validate(&schema, &input) {
+            return Err(AppError::InvalidInput(format!(
+                "input for '{}' failed schema: {err}",
+                entry.kind
+            )));
+        }
+
         tracing::info!(operator = %auth.subject, kind = entry.kind, decision = "allowed", "task dispatch");
 
         // Dispatch to the mapped plane. Concrete per-kind argument mapping lands
@@ -223,6 +239,33 @@ mod tests {
             "forge port must be called"
         );
         assert!(out.get("tables").is_some());
+    }
+
+    #[tokio::test]
+    async fn invalid_input_never_calls_port() {
+        let forge = Arc::new(FakeForge::default());
+        let r = runner_with(forge.clone());
+        // forge.table.describe requires `name`; provide an object without it.
+        let mut t = task("forge.table.describe");
+        t.input = serde_json::json!({ "wrong": 1 });
+        let err = r.run(&t, &auth(&["viewer"])).await.unwrap_err();
+        assert!(matches!(err, AppError::InvalidInput(_)));
+        assert!(
+            !forge.called.load(Ordering::SeqCst),
+            "no port call on invalid input"
+        );
+    }
+
+    #[tokio::test]
+    async fn valid_required_input_passes() {
+        let forge = Arc::new(FakeForge::default());
+        let r = runner_with(forge.clone());
+        let mut t = task("forge.table.describe");
+        t.input = serde_json::json!({ "name": "customers" });
+        r.run(&t, &auth(&["viewer"]))
+            .await
+            .expect("valid input runs");
+        assert!(forge.called.load(Ordering::SeqCst));
     }
 
     #[tokio::test]

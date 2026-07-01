@@ -125,8 +125,7 @@ fn tool_definitions() -> serde_json::Value {
             serde_json::json!({
                 "name": entry.kind,
                 "description": entry.description,
-                // Minimal object schema; per-kind input schemas are a carry-forward.
-                "inputSchema": { "type": "object" }
+                "inputSchema": entry.input_schema(),
             })
         })
         .collect();

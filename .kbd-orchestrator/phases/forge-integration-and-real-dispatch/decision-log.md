@@ -33,3 +33,12 @@ Q3 resolved: describe_table uses OpenAPI component schemas (no GraphQL
 introspection needed). list_tables ← GET /openapi.json (public). graphql_query
 helper forwards bearer → RLS; missing bearer/401 → Unauthorized. 6 wiremock tests.
 Live-forge smoke (4.5) NOT run — needs local Postgres-backed Quarry; deferred.
+
+### c003 executed: input validation via jsonschema
+Adopted jsonschema 0.46.8 (MSRV OK vs 1.93). CatalogEntry gains input_schema_json
+(raw JSON text; const array can't hold Value) parsed by input_schema(). Runner
+validates after permission, before dispatch → AppError::InvalidInput. Design catch:
+null/absent input normalized to {} so no-arg calls pass an object schema while
+required fields (project.inspect→project_id, forge.table.describe→name) enforce.
+MCP tools/list surfaces real per-kind schemas. Tests: schema-parse, invalid-input
+(no port call), valid-required-input.
