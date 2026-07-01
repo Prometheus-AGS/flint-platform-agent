@@ -20,3 +20,10 @@ All 4 pass openspec validate. Deps: c001→c002; c003,c004 independent.
 ### 2026-07-01T04:03:16Z — Plan: ordered 4 changes
 Order: c001 (root) → c002 (needs c001) → c003, c004 (independent). Linear for single-dev.
 First to apply: p2-c001-credential-threading. Waypoint refreshed; plan_complete=true.
+
+### Execute: decisions resolved
+- c001 MCP identity (Q4): MCP tools/call callers send the gate JWT as
+  Authorization: Bearer on POST /mcp → reuse the OperatorContext extractor.
+  Closes the MCP-identity debt fully.
+- c003 validation: adopt jsonschema crate (full JSON Schema validation) —
+  verify MSRV vs 1.93 before pinning (phase-1 lesson).
