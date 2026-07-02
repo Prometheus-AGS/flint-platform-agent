@@ -1,0 +1,81 @@
+{
+  "phase": "gate-admin-and-auth-hardening",
+  "mode": "stack-specified",
+  "stack": "Rust workspace (reqwest 0.12, jsonwebtoken 9) integrating flint-gate admin API + JWKS",
+  "generated": "2026-07-02",
+  "research_tiers_used": ["tier3-cargo-inspection", "tier3-sibling-inspection"],
+  "budget_note": "Minimal — reuse of existing deps. Only real questions: gate-client-reuse (Q2) and confirming jsonwebtoken's JWK support.",
+  "gaps": [
+    {
+      "gap": "fpa-gate admin list_routes (real)",
+      "requirements": ["gate admin"],
+      "candidates": [
+        {
+          "name": "thin reqwest client (GET /v1/admin/routes)",
+          "version": "reqwest 0.12 (present)",
+          "source": "existing workspace dep; matches flint-gate-client's own transport",
+          "verdict": "BUILD (reuse reqwest)",
+          "confidence": "high",
+          "evidence": "list_routes is one GET with bearer + 401/403 mapping — reqwest already used by fpa-forge/fpa-mcp. Fix the path to /v1/admin/routes (the stub guessed bare /routes).",
+          "notes": "Preferred over the git-dep (below)."
+        },
+        {
+          "name": "flint-gate-client (git dependency)",
+          "version": "0.1.0",
+          "source": "github.com/Know-Me-Tools/flint-gate (cross-org)",
+          "verdict": "REJECT for this phase",
+          "confidence": "high",
+          "evidence": "Gives typed routes + the correct /v1/admin prefix, BUT its deps include tokio-tungstenite (WS), bytes, futures — a full streaming client, not a thin admin helper. As a cross-org git-dep it drags a WS stack + cross-org SSH onto every build machine for a single GET. Not worth it for list_routes.",
+          "notes": "Revisit only if the agent needs gate's WS/streaming client surface later."
+        }
+      ]
+    },
+    {
+      "gap": "JWT verification against gate JWKS (direct-token path)",
+      "requirements": ["auth hardening / debt #4"],
+      "candidates": [
+        {
+          "name": "jsonwebtoken jwk module (already a dep)",
+          "version": "9.3.1 (workspace; == gate's jsonwebtoken 9)",
+          "source": "existing dep",
+          "verdict": "REUSE (no new crate)",
+          "confidence": "high",
+          "evidence": "jsonwebtoken 9.3.1 has `pub mod jwk` (JwkSet, DecodingKey::from_jwk) — the exact API gate's jwt_verify.rs uses. Add a cached JWKS fetch (reqwest, 300s like gate) + RS256/ES256 verify; keep the HS256-secret path. Reject unverified when no key AND not gate-injected.",
+          "notes": "Mirror gate/forge parity — same jsonwebtoken major, same verify shape."
+        }
+      ]
+    },
+    {
+      "gap": "Trust gate-injected identity (position-dependent verification)",
+      "requirements": ["auth model / the assessment correction"],
+      "candidates": [
+        {
+          "name": "internal (header-based detection)",
+          "verdict": "BUILD",
+          "confidence": "medium",
+          "evidence": "No library — a design decision. When a request arrives via gate (gate-set marker / X-User-* headers / gate-minted Authorization), TRUST it; only a directly-received token triggers JWKS verify. Keeps the gate-only-boundary invariant.",
+          "notes": "Q1 (crux): exact trusted-vs-direct detection mechanism. Decide at spec."
+        }
+      ]
+    },
+    {
+      "gap": "Forge update/delete mutations (stretch)",
+      "requirements": ["debt #5 remainder"],
+      "candidates": [
+        {
+          "name": "reuse graphql_exec (updateCollection / deleteFromCollection)",
+          "verdict": "REUSE-IF-IN-SCOPE (defer)",
+          "confidence": "high",
+          "evidence": "Same pg_graphql pattern as p3-c001's insert. Trivial extension if pulled in; recommend defer to keep this phase focused on gate + auth.",
+          "notes": "Q4: in-scope or defer (recommend defer)."
+        }
+      ]
+    }
+  ],
+  "key_adopt_verdicts": [
+    "fpa-gate list_routes: BUILD thin reqwest (GET /v1/admin/routes); REJECT flint-gate-client git-dep (WS-heavy, cross-org)",
+    "JWKS verify: REUSE jsonwebtoken 9.3.1 jwk module (no new crate); cached fetch mirrors gate's 300s",
+    "Position-dependent trust: internal BUILD — trust gate-injected, verify direct (Q1 detection at spec)",
+    "Forge update/delete: reuse graphql_exec if in-scope; recommend defer"
+  ]
+}
