@@ -1,14 +1,14 @@
 {
-  "phase": "forge-writes-and-realtime",
-  "previousPhase": "forge-integration-and-real-dispatch",
+  "phase": "gate-admin-and-auth-hardening",
+  "previousPhase": "forge-writes-and-realtime",
   "change": null,
-  "status": "phase_complete",
-  "currentTask": "phase forge-writes reflected; start next phase",
-  "nextPendingChange": "p3-c002-fabric-health",
+  "status": "assessment_ready",
+  "currentTask": "run kbd-assess for gate-admin-and-auth-hardening",
+  "nextPendingChange": null,
   "sourceTool": "unknown",
-  "exactNextCommand": "/kbd-next-phase",
+  "exactNextCommand": "/kbd-assess gate-admin-and-auth-hardening",
   "parentPhase": null,
   "childPhases": [],
   "childPointer": null,
-  "updatedAt": "2026-07-01T21:04:56Z"
+  "updatedAt": "2026-07-02T19:10:42Z"
 }
