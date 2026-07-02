@@ -2,13 +2,13 @@
   "phase": "gate-admin-and-auth-hardening",
   "previousPhase": "forge-writes-and-realtime",
   "change": null,
-  "status": "analyze_complete",
-  "currentTask": "review analysis; proceed to spec",
+  "status": "spec_complete",
+  "currentTask": "order the 3 changes; proceed to plan",
   "nextPendingChange": null,
   "sourceTool": "unknown",
-  "exactNextCommand": "/kbd-spec gate-admin-and-auth-hardening",
+  "exactNextCommand": "/kbd-plan gate-admin-and-auth-hardening",
   "parentPhase": null,
   "childPhases": [],
   "childPointer": null,
-  "updatedAt": "2026-07-02T21:50:41Z"
+  "updatedAt": "2026-07-02T22:11:37Z"
 }

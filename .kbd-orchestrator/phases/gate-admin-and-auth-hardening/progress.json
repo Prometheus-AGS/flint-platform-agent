@@ -5,16 +5,16 @@
   "childPointer": null,
   "assessment_complete": true,
   "analyze_complete": true,
-  "spec_complete": false,
+  "spec_complete": true,
   "plan_complete": false,
   "execute_complete": false,
   "reflect_complete": false,
-  "changes_total": 0,
+  "changes_total": 3,
   "changes_completed": 0,
   "completed_changes": [],
   "active_change": null,
   "blocked_changes": [],
   "sourceTool": "unknown",
   "createdBy": "kbd-next-phase",
-  "updatedAt": "2026-07-02T21:50:41Z"
+  "updatedAt": "2026-07-02T22:11:37Z"
 }

@@ -124,3 +124,44 @@ without breaking the gate-only-boundary invariant. Core work = real `fpa-gate`
 `list_routes` (fix `/v1/admin` path) + JWKS verify for the direct path + trust the
 gate-injected path. Open for analyze: the trusted-vs-verify detection (Q1),
 client-reuse (Q2), JWKS config (Q3), forge update/delete scope (Q4).
+
+---
+
+## 8. Sibling drift re-check (2026-07-02) — SCOPE CHANGE
+
+Re-verified siblings before spec (user-requested). Two material drifts found:
+
+### flint-forge — NEW REST CRUD surface (sync required)
+Forge advanced past what phase-2/3 integrated against. New commits `p3-c013`
+(REST list + 12 filter operators) and `p3-c014` (REST insert/update/delete, Keto+
+Cedar gated). Forge now serves a **mounted, Supabase-style dynamic REST CRUD**
+surface, compiled per-table by `fdb-reflection/src/compilers/rest/` and merged
+into the gateway (`reflection_router`, main.rs:191):
+- `GET  /<table>` → `handle_list` (filters)
+- `POST /<table>` → `handle_insert` (201 Created, `Location`)
+- `PATCH /<table>` → `handle_update`
+- `DELETE /<table>` → `handle_delete`
+- Auth: `Extension<RlsContext>` from bearer; Keto+Cedar mutation gate.
+
+**Impact:** our `fpa-forge` writes (phase-3) use pg_graphql `insertInto…Collection`
+mutations. Forge's first-class REST is cleaner (proper CRUD verbs, filters, 201).
+**Decision (user):** add a **forge-REST-sync** change to THIS phase migrating
+`fpa-forge` reads+writes to forge REST CRUD, alongside gate+auth.
+
+### flint-gate — expanded admin surface (adjust gate spec)
+Gate advanced too (`production-readiness`, `API key management admin endpoints`,
+`sdk-ecosystem`). Current `admin_router` (admin/mod.rs) = `/health`, `/ready`,
+`/cache/stats`, `/cache/invalidate`, + 6 more (routes CRUD + API-key mgmt).
+**Discrepancy to resolve at execute:** `admin_app` is mounted in main.rs **without
+a `/v1/admin` nest**, yet `flint-gate-client` prepends `/v1/admin`. So the real
+admin path (bare `/routes` on the admin port vs `/v1/admin/routes`) must be
+confirmed at execute — do NOT hardcode until verified against a running gate or
+the client's base-URL construction.
+
+### flint-realtime-fabric — no drift
+`/healthz` route unchanged (frf-gateway lib.rs:64); phase-3 `fpa-fabric::health`
+remains correct. Fabric's recent work is Stage-10 CI/Dagger, not gateway API.
+
+**Net:** phase 4 grows from 2 → 3 changes: gate list_routes + JWT hardening +
+**forge-REST-sync**. Re-confirm the gate admin path at execute (client-prefix vs
+server-mount discrepancy).
