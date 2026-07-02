@@ -5,16 +5,20 @@
 //! operator's roles/permissions from the claims. It does **not** call Ory
 //! (Kratos/Hydra/Keto/Oathkeeper) and does **not** fetch Ory JWKS.
 //!
-//! **Interim signature verification:** when a `gate_jwt_key` is configured the
-//! token signature is validated; otherwise the token is decoded *without*
-//! signature verification (claims-only) until gate's published key/JWKS endpoint
-//! is wired. This is a documented stopgap, not the end state.
+//! **Position-dependent verification (p4-c002):**
+//! 1. **Trust path** — when a request carries the operator-configured trusted
+//!    identity headers (gate injected them, so it came through gate), identity is
+//!    built from those headers without verifying a token.
+//! 2. **Verify path** — a directly-received bearer is signature-verified against
+//!    the IdP JWKS (RS256/ES256) or the HS256 shared secret.
+//! 3. **Reject** — a raw token with no usable verification key is never decoded
+//!    unverified. There is no insecure fallback.
 
 use axum::{
     extract::{FromRequestParts, OptionalFromRequestParts},
     http::{StatusCode, request::Parts},
 };
-use jsonwebtoken::{DecodingKey, Validation, decode, decode_header};
+use jsonwebtoken::{DecodingKey, Validation, decode};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
@@ -34,9 +38,9 @@ pub struct GateClaims {
     /// Tenant scope, when present.
     #[serde(default)]
     pub tenant_id: Option<String>,
-    /// Expiry (epoch seconds) — validated when signature verification is on.
-    #[serde(default)]
-    pub exp: Option<usize>,
+    /// Expiry (epoch seconds) — REQUIRED; verification always validates it. Kept
+    /// non-optional so the type matches the enforced requirement (review H5).
+    pub exp: usize,
 }
 
 /// The authenticated operator for a request, derived solely from gate claims.
@@ -55,6 +59,19 @@ pub struct OperatorContext {
     pub signature_verified: bool,
     /// The raw gate-minted bearer, forwarded downstream for RLS. Never logged.
     pub bearer: String,
+}
+
+impl OperatorContext {
+    /// The forwardable bearer, or `None` on the trust path (no token to forward).
+    /// Never forward `Some("")` downstream (an empty credential is not `None`).
+    #[must_use]
+    pub fn forwardable_bearer(&self) -> Option<String> {
+        if self.bearer.is_empty() {
+            None
+        } else {
+            Some(self.bearer.clone())
+        }
+    }
 }
 
 // Manual Debug that redacts the bearer — deriving Debug would print the token.
@@ -91,22 +108,81 @@ impl FromRequestParts<Arc<AppState>> for OperatorContext {
         parts: &mut Parts,
         state: &Arc<AppState>,
     ) -> Result<Self, Self::Rejection> {
+        // 1. TRUST PATH — request came through gate (all configured trusted
+        //    headers present). Build identity from them; do not verify a token.
+        if let Some(ctx) = trusted_from_headers(parts, &state.config.trusted_identity_headers) {
+            tracing::debug!(path = "trusted", "gate-injected identity");
+            return Ok(ctx);
+        }
+
+        // 2. VERIFY PATH — a directly-received bearer must be signature-verified.
         let token = bearer_token(parts).ok_or(NoIdentity)?;
-        let claims = decode_gate_jwt(&token, state.config.gate_jwt_key.as_deref())
-            .map_err(|_| NoIdentity)?;
-        // Never log the token or full claim set — only the subject presence.
+        let claims = verify_token(&token, state).await.ok_or(NoIdentity)?;
         tracing::debug!(
-            has_subject = !claims.0.sub.is_empty(),
-            "gate identity resolved"
+            path = "verified",
+            has_subject = !claims.sub.is_empty(),
+            "identity verified"
         );
         Ok(Self {
-            subject: claims.0.sub,
-            roles: claims.0.roles,
-            tenant_id: claims.0.tenant_id,
-            signature_verified: claims.1,
+            subject: claims.sub,
+            roles: claims.roles,
+            tenant_id: claims.tenant_id,
+            signature_verified: true,
             bearer: token,
         })
+        // 3. Any other case fell through to NoIdentity above — a raw token that
+        //    cannot be verified is NEVER decoded unverified.
     }
+}
+
+/// Build a trusted [`OperatorContext`] from gate-injected headers, iff the
+/// operator configured a non-empty trusted-header set and ALL of them are present.
+/// Returns `None` (fall through to verification) otherwise.
+fn trusted_from_headers(parts: &Parts, trusted: &[String]) -> Option<OperatorContext> {
+    if trusted.is_empty() {
+        return None;
+    }
+    // Every configured trusted header must be present.
+    let get = |name: &str| -> Option<String> {
+        parts
+            .headers
+            .get(name)
+            .and_then(|v| v.to_str().ok())
+            .map(str::to_owned)
+    };
+    if !trusted.iter().all(|h| get(h).is_some()) {
+        return None;
+    }
+    // Conventional gate identity headers → subject / roles / tenant.
+    let subject = get("x-user-id").unwrap_or_default();
+    let roles = get("x-user-roles")
+        .map(|r| r.split(',').map(|s| s.trim().to_owned()).collect())
+        .unwrap_or_default();
+    let tenant_id = get("x-org-id").or_else(|| get("x-tenant-id"));
+    Some(OperatorContext {
+        subject,
+        roles,
+        tenant_id,
+        signature_verified: false, // trusted via gate, not by us verifying a signature
+        bearer: String::new(),     // no forwardable bearer on the header path
+    })
+}
+
+/// Verify a directly-received token: JWKS first (if configured), then the HS256
+/// shared secret (if configured). No usable key ⇒ `None` (reject) — never an
+/// unverified decode.
+async fn verify_token(token: &str, state: &Arc<AppState>) -> Option<GateClaims> {
+    if let Some(verifier) = state.jwks.as_ref()
+        && let Ok(claims) = verifier.verify::<GateClaims>(token).await
+    {
+        return Some(claims);
+    }
+    if let Some(secret) = state.config.gate_jwt_key.as_deref()
+        && let Ok((claims, _)) = verify_hs256(token, secret)
+    {
+        return Some(claims);
+    }
+    None
 }
 
 /// Optional extraction: absent/invalid gate identity yields `None` rather than a
@@ -138,30 +214,23 @@ fn bearer_token(parts: &Parts) -> Option<String> {
 /// Decode a gate-minted JWT. Returns the claims and whether the signature was
 /// verified. With a configured key, the signature + expiry are validated; without
 /// one, claims are decoded unverified (interim stopgap, documented above).
-fn decode_gate_jwt(
+fn verify_hs256(
     token: &str,
-    key: Option<&str>,
+    secret: &str,
 ) -> Result<(GateClaims, bool), jsonwebtoken::errors::Error> {
-    let header = decode_header(token)?;
-    if let Some(secret) = key {
-        let mut validation = Validation::new(header.alg);
-        validation.validate_exp = true;
-        let data = decode::<GateClaims>(
-            token,
-            &DecodingKey::from_secret(secret.as_bytes()),
-            &validation,
-        )?;
-        Ok((data.claims, true))
-    } else {
-        // Interim: structurally decode + read claims WITHOUT signature/exp
-        // verification. Replace when gate's key/JWKS endpoint is wired.
-        let mut validation = Validation::new(header.alg);
-        validation.insecure_disable_signature_validation();
-        validation.validate_exp = false;
-        validation.required_spec_claims.clear();
-        let data = decode::<GateClaims>(token, &DecodingKey::from_secret(b"unused"), &validation)?;
-        Ok((data.claims, false))
-    }
+    // Signature-verify with the shared secret + validate expiry. The algorithm is
+    // SERVER-FIXED to HS256 — never derived from the token header (prevents
+    // algorithm confusion, e.g. an RS256 token downgraded to HS256). The old
+    // "decode unverified when no key" branch is retired (p4-c002).
+    let mut validation = Validation::new(jsonwebtoken::Algorithm::HS256);
+    validation.validate_exp = true;
+    validation.validate_aud = false;
+    let data = decode::<GateClaims>(
+        token,
+        &DecodingKey::from_secret(secret.as_bytes()),
+        &validation,
+    )?;
+    Ok((data.claims, true))
 }
 
 #[cfg(test)]
@@ -174,7 +243,7 @@ mod tests {
             sub: "op-123".into(),
             roles: roles.iter().map(|s| (*s).to_owned()).collect(),
             tenant_id: Some("tenant-a".into()),
-            exp: Some(4_102_444_800), // year 2100
+            exp: 4_102_444_800, // year 2100
         };
         encode(
             &Header::new(Algorithm::HS256),
@@ -185,28 +254,33 @@ mod tests {
     }
 
     #[test]
-    fn verifies_with_configured_key() {
+    fn hs256_verifies_with_configured_key() {
         let token = mint("shared-key", &["admin", "operator"]);
-        let (claims, verified) = decode_gate_jwt(&token, Some("shared-key")).expect("decode");
+        let (claims, verified) = verify_hs256(&token, "shared-key").expect("verify");
         assert!(verified);
         assert_eq!(claims.sub, "op-123");
         assert_eq!(claims.roles, vec!["admin", "operator"]);
     }
 
     #[test]
-    fn rejects_bad_signature_when_key_configured() {
+    fn hs256_rejects_bad_signature() {
         let token = mint("shared-key", &["admin"]);
-        let err = decode_gate_jwt(&token, Some("wrong-key"));
-        assert!(err.is_err(), "wrong key must fail signature verification");
+        assert!(
+            verify_hs256(&token, "wrong-key").is_err(),
+            "wrong key must fail signature verification"
+        );
     }
 
+    // SECURITY (p4-c002): there is no longer any unverified-decode path. A token
+    // is only accepted via a verifying function (verify_hs256 / JWKS). This test
+    // documents that verify_hs256 hard-fails on a wrong key — no silent accept.
     #[test]
-    fn decodes_claims_unverified_without_key() {
-        let token = mint("shared-key", &["operator"]);
-        let (claims, verified) = decode_gate_jwt(&token, None).expect("decode unverified");
-        assert!(!verified, "no key configured → signature not verified");
-        assert_eq!(claims.sub, "op-123");
-        assert!(claims.roles.contains(&"operator".to_owned()));
+    fn no_unverified_accept() {
+        let token = mint("real-secret", &["operator"]);
+        assert!(
+            verify_hs256(&token, "attacker-guess").is_err(),
+            "a token must never be accepted without correct-key verification"
+        );
     }
 
     #[test]

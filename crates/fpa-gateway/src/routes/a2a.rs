@@ -57,7 +57,7 @@ async fn submit(
     let auth = AuthContext {
         subject: operator.subject.clone(),
         roles: operator.roles.clone(),
-        bearer: Some(operator.bearer.clone()),
+        bearer: operator.forwardable_bearer(),
     };
 
     let kind = task.kind.clone();
@@ -127,8 +127,11 @@ fn state_to_event(task_id: TaskId, state: &TaskState) -> TaskEvent {
 }
 
 /// `GET /a2a/tasks/{task_id}` — fetch current task status from the store.
+///
+/// Requires an authenticated operator (broken-access-control fix, p4-c002 review).
 async fn status(
     State(state): State<Arc<AppState>>,
+    _operator: OperatorContext,
     Path(task_id): Path<Uuid>,
 ) -> Result<Json<TaskEvent>, ApiError> {
     let id = TaskId(task_id);
@@ -139,8 +142,11 @@ async fn status(
 }
 
 /// `POST /a2a/tasks/{task_id}/cancel` — request cancellation of a task.
+///
+/// Requires an authenticated operator (broken-access-control fix, p4-c002 review).
 async fn cancel(
     State(state): State<Arc<AppState>>,
+    _operator: OperatorContext,
     Path(task_id): Path<Uuid>,
 ) -> Result<Json<TaskEvent>, ApiError> {
     let id = TaskId(task_id);

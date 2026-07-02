@@ -2,13 +2,13 @@
   "phase": "gate-admin-and-auth-hardening",
   "previousPhase": "forge-writes-and-realtime",
   "change": "p4-c002-jwt-verification-hardening",
-  "status": "plan_complete",
-  "currentTask": "apply p4-c002-jwt-verification-hardening (security-reviewed)",
+  "status": "execution_ready",
+  "currentTask": "apply p4-c002-jwt-verification-hardening",
   "nextPendingChange": "p4-c003-forge-rest-sync",
   "sourceTool": "unknown",
   "exactNextCommand": "/kbd-execute gate-admin-and-auth-hardening",
   "parentPhase": null,
   "childPhases": [],
   "childPointer": null,
-  "updatedAt": "2026-07-02T22:29:40Z"
+  "updatedAt": "2026-07-02T22:30:47Z"
 }

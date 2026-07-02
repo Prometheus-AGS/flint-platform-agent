@@ -185,7 +185,7 @@ async fn call_tool(
     let auth = AuthContext {
         subject: operator.subject.clone(),
         roles: operator.roles.clone(),
-        bearer: Some(operator.bearer.clone()),
+        bearer: operator.forwardable_bearer(),
     };
 
     match state.runner.run(&task, &auth).await {

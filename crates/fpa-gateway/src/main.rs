@@ -17,6 +17,7 @@ use std::sync::Arc;
 mod api_error;
 mod config;
 mod identity;
+mod jwks;
 mod routes;
 mod state;
 

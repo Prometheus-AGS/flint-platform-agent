@@ -5,6 +5,7 @@
 //! shared state. This is the only place concrete adapters are wired.
 
 use crate::config::GatewayConfig;
+use crate::jwks::JwksVerifier;
 use fpa_app::{TaskRunner, TaskStore};
 use fpa_fabric::FabricAdapter;
 use fpa_forge::ForgeAdapter;
@@ -20,6 +21,8 @@ pub struct AppState {
     pub config: Arc<GatewayConfig>,
     /// In-memory store of submitted tasks (A2A status/cancel).
     pub tasks: Arc<TaskStore>,
+    /// JWKS verifier for directly-received tokens (`None` if no JWKS configured).
+    pub jwks: Option<Arc<JwksVerifier>>,
 }
 
 impl AppState {
@@ -36,11 +39,20 @@ impl AppState {
             String::new(),
         ));
 
+        let jwks = config.jwks_url.clone().map(|url| {
+            Arc::new(JwksVerifier::new(
+                url,
+                config.jwt_issuers.clone(),
+                config.jwt_audiences.clone(),
+            ))
+        });
+
         let runner = Arc::new(TaskRunner::new(forge, fabric, gate, mcp));
         Self {
             runner,
             config: Arc::new(config),
             tasks: Arc::new(TaskStore::default()),
+            jwks,
         }
     }
 }
