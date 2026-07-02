@@ -1,18 +1,18 @@
 # Current Waypoint
 
-**Phase:** forge-writes-and-realtime
+**Phase:** gate-admin-and-auth-hardening
 **Status:** plan_complete
 **Changes:** 0/3 complete
 
-## Ordered changes (all independent)
-1. **p3-c001-forge-write-mutations** ← next
-2. p3-c002-fabric-health
-3. p3-c003-test-hardening
+## Ordered changes (all independent; risk-ordered)
+1. **p4-c002-jwt-verification-hardening** ← next (auth, security-reviewed)
+2. p4-c003-forge-rest-sync (forge REST drift)
+3. p4-c001-gate-admin-list-routes (last plane)
 
 ## Next command
 ```
-/kbd-execute forge-writes-and-realtime
+/kbd-execute gate-admin-and-auth-hardening
 ```
 
-Plan: `.kbd-orchestrator/phases/forge-writes-and-realtime/plan.md`
-Updated: 2026-07-01T20:46:44Z
+Plan: `.kbd-orchestrator/phases/gate-admin-and-auth-hardening/plan.md`
+Updated: 2026-07-02T22:29:40Z

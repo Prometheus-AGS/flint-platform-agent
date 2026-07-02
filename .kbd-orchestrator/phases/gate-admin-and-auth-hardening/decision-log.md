@@ -27,3 +27,7 @@ Deep-verified flint-gate source before finalizing:
   (FPA_JWKS_URL = same IdP gate uses), not a gate endpoint.
 - c003 forge-rest-sync (NEW, drift): migrate fpa-forge writes to forge REST CRUD.
 All 3 pass openspec validate. Independent changes.
+
+### 2026-07-02T22:29:40Z — Plan: ordered 3 (auth-first by risk)
+Independent changes; risk-ordered: c002 JWT hardening (high-risk auth, security-reviewed)
+→ c003 forge-rest-sync (drift) → c001 gate list_routes (small). First: c002.
