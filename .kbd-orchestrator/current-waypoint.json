@@ -2,13 +2,13 @@
   "phase": "gate-admin-and-auth-hardening",
   "previousPhase": "forge-writes-and-realtime",
   "change": null,
-  "status": "assessment_ready",
-  "currentTask": "run kbd-assess for gate-admin-and-auth-hardening",
+  "status": "assessment_complete",
+  "currentTask": "review assessment; proceed to analyze",
   "nextPendingChange": null,
   "sourceTool": "unknown",
-  "exactNextCommand": "/kbd-assess gate-admin-and-auth-hardening",
+  "exactNextCommand": "/kbd-analyze gate-admin-and-auth-hardening",
   "parentPhase": null,
   "childPhases": [],
   "childPointer": null,
-  "updatedAt": "2026-07-02T19:10:42Z"
+  "updatedAt": "2026-07-02T19:45:02Z"
 }
