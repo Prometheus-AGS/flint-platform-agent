@@ -5,56 +5,60 @@
 //! - **data** ← `POST {base}/graphql` forwarding the operator's gate bearer as
 //!   `Authorization: Bearer` so forge applies RLS (`rls_from_bearer`).
 //!
-//! Writes (`create_entity`) go through forge's **REST CRUD** surface
-//! (`POST {base}{rest_prefix}/<table>`, Supabase-style — synced to forge p3-c013/
-//! c014), also under the operator bearer. `graphql_exec` remains available for
-//! GraphQL queries. Forge (RLS + Keto/Cedar) is the authorization authority; the
-//! adapter forwards the bearer and never fabricates a credential or replicates authz.
+//! Writes (`create_entity`) go through forge's **REST CRUD** surface. Forge's
+//! reflection router is merged at the gateway **root** (no `/rest` prefix) and
+//! generates one route per table as `POST /{schema}/{table}` (source-verified:
+//! `fdb-reflection/compilers/rest/mod.rs` + `fdb-gateway/main.rs`). So the write
+//! path is `POST {base}[{path_base}]/{schema}/{table}`, under the operator bearer.
+//! `graphql_exec` remains available for GraphQL queries. Forge (RLS + Keto/Cedar)
+//! is the authorization authority; the adapter forwards the bearer and never
+//! fabricates a credential or replicates authz.
 
 use async_trait::async_trait;
 use fpa_ports::{ForgeMetadata, PortError};
 use serde_json::{Value, json};
 
-/// Default forge REST path prefix (Supabase-style). Override via config.
-const DEFAULT_REST_PREFIX: &str = "/rest";
-
 /// HTTP client adapter for Flint Forge Quarry.
 pub struct ForgeAdapter {
     /// Base URL of the Quarry gateway.
     pub base_url: String,
-    /// REST path prefix under which per-table CRUD endpoints are mounted
-    /// (`{base}{rest_prefix}/<table>`). Config-driven so a forge change is a
-    /// config fix, not a code change.
-    rest_prefix: String,
+    /// Optional path base prepended before `/{schema}/{table}`. Empty by default
+    /// (forge merges the REST router at the gateway root). Config-driven
+    /// (`FPA_FORGE_REST_PREFIX`) only for non-default gateway topologies — it does
+    /// **not** default to `/rest`.
+    path_base: String,
     http: reqwest::Client,
 }
 
 impl ForgeAdapter {
-    /// Construct an adapter pointed at a Quarry gateway base URL (default REST prefix).
+    /// Construct an adapter pointed at a Quarry gateway base URL (root-mounted REST).
     #[must_use]
     pub fn new(base_url: impl Into<String>) -> Self {
         Self {
             base_url: base_url.into(),
-            rest_prefix: DEFAULT_REST_PREFIX.to_owned(),
+            path_base: String::new(),
             http: reqwest::Client::new(),
         }
     }
 
-    /// Override the forge REST path prefix (from config, e.g. `FPA_FORGE_REST_PREFIX`).
+    /// Set an optional REST path base (from config, e.g. `FPA_FORGE_REST_PREFIX`).
+    /// Prepended before `/{schema}/{table}`. Leave unset for a root-mounted forge.
     #[must_use]
     pub fn with_rest_prefix(mut self, prefix: impl Into<String>) -> Self {
         let p = prefix.into();
-        if !p.trim().is_empty() {
-            self.rest_prefix = p;
+        let trimmed = p.trim().trim_end_matches('/');
+        if !trimmed.is_empty() {
+            trimmed.clone_into(&mut self.path_base);
         }
         self
     }
 
-    /// POST a row to forge's REST table endpoint under the operator bearer.
-    /// Forge (RLS + Keto/Cedar) authorizes server-side; a missing bearer is
-    /// rejected (writes always require the operator's identity).
+    /// POST a row to forge's REST table endpoint (`{base}[{path_base}]/{schema}/
+    /// {table}`) under the operator bearer. Forge (RLS + Keto/Cedar) authorizes
+    /// server-side; a missing bearer is rejected (writes require the operator).
     async fn rest_insert(
         &self,
+        schema: &str,
         table: &str,
         object: Value,
         bearer: Option<&str>,
@@ -63,9 +67,10 @@ impl ForgeAdapter {
             PortError::Unauthorized("forge write requires the operator bearer".to_owned())
         })?;
         let url = format!(
-            "{}{}/{}",
+            "{}{}/{}/{}",
             self.base_url.trim_end_matches('/'),
-            self.rest_prefix,
+            self.path_base,
+            schema,
             table
         );
         let resp = self
@@ -149,14 +154,15 @@ impl ForgeMetadata for ForgeAdapter {
 
     async fn create_entity(
         &self,
-        collection: &str,
+        schema: &str,
+        table: &str,
         object: Value,
         bearer: Option<&str>,
     ) -> Result<Value, PortError> {
-        // Primary write path: forge's REST insert (`POST {base}{rest_prefix}/<table>`),
-        // synced to forge's current Supabase-style REST CRUD surface (p3-c013/c014).
-        // `graphql_exec` remains available for queries; REST is preferred for writes.
-        self.rest_insert(collection, object, bearer).await
+        // Primary write path: forge's REST insert `POST /{schema}/{table}` (root-
+        // mounted, source-verified from forge). `graphql_exec` remains available
+        // for queries; REST is the write path.
+        self.rest_insert(schema, table, object, bearer).await
     }
 }
 
@@ -339,51 +345,73 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn create_entity_posts_rest_insert_with_bearer() {
-        // p4-c003: writes now go through forge's REST CRUD (POST /rest/<table>),
-        // not pg_graphql. 201 Created with the inserted row.
+    async fn create_entity_posts_schema_qualified_rest_insert_with_bearer() {
+        // p5-c002: writes go to forge's real REST route `POST /{schema}/{table}`
+        // (root-mounted, no /rest prefix). 201 Created with the inserted row.
         let server = MockServer::start().await;
         Mock::given(method("POST"))
-            .and(path("/rest/Projects"))
+            .and(path("/flint_meta/applications"))
             .and(header("authorization", "Bearer tok"))
-            .respond_with(ResponseTemplate::new(201).set_body_json(json!({ "id": "p-1" })))
+            .respond_with(ResponseTemplate::new(201).set_body_json(json!({ "id": "a-1" })))
             .mount(&server)
             .await;
 
         let adapter = ForgeAdapter::new(server.uri());
         let out = adapter
-            .create_entity("Projects", json!({"name": "p1"}), Some("tok"))
+            .create_entity(
+                "flint_meta",
+                "applications",
+                json!({"name": "p1"}),
+                Some("tok"),
+            )
             .await
             .expect("create");
-        assert_eq!(out["id"], "p-1");
+        assert_eq!(out["id"], "a-1");
     }
 
     #[tokio::test]
-    async fn create_entity_honors_rest_prefix_override() {
+    async fn create_entity_has_no_rest_prefix_by_default() {
+        // Guard against regressing to the old `/rest/<table>` path: a mock mounted
+        // at `/rest/...` must NOT match; only the schema/table path is used.
         let server = MockServer::start().await;
         Mock::given(method("POST"))
-            .and(path("/rest/v1/Projects"))
+            .and(path("/flint_a2ui/components"))
             .respond_with(ResponseTemplate::new(201).set_body_json(json!({ "ok": true })))
             .mount(&server)
             .await;
-        let adapter = ForgeAdapter::new(server.uri()).with_rest_prefix("/rest/v1");
+        let adapter = ForgeAdapter::new(server.uri());
         adapter
-            .create_entity("Projects", json!({}), Some("tok"))
+            .create_entity("flint_a2ui", "components", json!({}), Some("tok"))
             .await
-            .expect("create with prefix");
+            .expect("create at root-mounted schema/table");
+    }
+
+    #[tokio::test]
+    async fn create_entity_honors_optional_path_base() {
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/api/flint_meta/applications"))
+            .respond_with(ResponseTemplate::new(201).set_body_json(json!({ "ok": true })))
+            .mount(&server)
+            .await;
+        let adapter = ForgeAdapter::new(server.uri()).with_rest_prefix("/api");
+        adapter
+            .create_entity("flint_meta", "applications", json!({}), Some("tok"))
+            .await
+            .expect("create with path base");
     }
 
     #[tokio::test]
     async fn create_entity_forge_403_is_unauthorized() {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
-            .and(path("/rest/Projects"))
+            .and(path("/flint_meta/applications"))
             .respond_with(ResponseTemplate::new(403))
             .mount(&server)
             .await;
         let adapter = ForgeAdapter::new(server.uri());
         let err = adapter
-            .create_entity("Projects", json!({}), Some("tok"))
+            .create_entity("flint_meta", "applications", json!({}), Some("tok"))
             .await
             .unwrap_err();
         assert!(matches!(err, PortError::Unauthorized(_)));
@@ -393,7 +421,7 @@ mod tests {
     async fn create_entity_missing_bearer_is_unauthorized() {
         let adapter = ForgeAdapter::new("http://unused");
         let err = adapter
-            .create_entity("Projects", json!({}), None)
+            .create_entity("flint_meta", "applications", json!({}), None)
             .await
             .unwrap_err();
         assert!(matches!(err, PortError::Unauthorized(_)));

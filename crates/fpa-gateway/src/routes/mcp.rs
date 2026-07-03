@@ -186,6 +186,8 @@ async fn call_tool(
         subject: operator.subject.clone(),
         roles: operator.roles.clone(),
         bearer: operator.forwardable_bearer(),
+        // p5-c003 G6: carry identity provenance into the task audit.
+        signature_verified: operator.signature_verified,
     };
 
     match state.runner.run(&task, &auth).await {

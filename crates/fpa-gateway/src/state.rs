@@ -6,7 +6,7 @@
 
 use crate::config::GatewayConfig;
 use crate::jwks::JwksVerifier;
-use fpa_app::{TaskRunner, TaskStore};
+use fpa_app::{InMemoryProjectStore, TaskRunner, TaskStore};
 use fpa_fabric::FabricAdapter;
 use fpa_forge::ForgeAdapter;
 use fpa_gate::GateAdapter;
@@ -54,7 +54,10 @@ impl AppState {
             ))
         });
 
-        let runner = Arc::new(TaskRunner::new(forge, fabric, gate, mcp));
+        // Agent-owned Project persistence (p5-c001): in-memory this phase.
+        let projects = Arc::new(InMemoryProjectStore::new());
+
+        let runner = Arc::new(TaskRunner::new(forge, fabric, gate, mcp, projects));
         Self {
             runner,
             config: Arc::new(config),

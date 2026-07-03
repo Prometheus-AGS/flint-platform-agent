@@ -1,28 +1,13 @@
-//! `fpa-gateway` — the Axum composition root for the Flint Platform Agent.
+//! `fpa-gateway` binary — thin entry point over the library's [`build_router`].
 //!
-//! This is the **only** crate that imports concrete adapters. It loads config,
-//! constructs the four plane adapters into the app-layer `TaskRunner`
-//! ([`state::AppState`]), and mounts the protocol surfaces with that shared
-//! state:
-//!
-//! - AG-UI event stream (agent → UI)
-//! - A2A task endpoints
-//! - MCP **server** (HTTP-Streaming only)
+//! Loads config, constructs [`AppState`], and serves the merged router. All the
+//! composition logic lives in the library (`lib.rs`) so integration tests can
+//! drive the same router without a listening socket.
 //!
 //! `anyhow` is permitted here (binary entry point); library crates use `thiserror`.
 
-use axum::{Router, routing::get};
+use fpa_gateway::{AppState, GatewayConfig, build_router};
 use std::sync::Arc;
-
-mod api_error;
-mod config;
-mod identity;
-mod jwks;
-mod routes;
-mod state;
-
-use config::GatewayConfig;
-use state::AppState;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -42,14 +27,4 @@ async fn main() -> anyhow::Result<()> {
     let listener = tokio::net::TcpListener::bind(addr).await?;
     axum::serve(listener, app).await?;
     Ok(())
-}
-
-/// Build the agent router by merging each protocol surface with shared state.
-fn build_router(state: Arc<AppState>) -> Router {
-    Router::new()
-        .route("/healthz", get(routes::healthz))
-        .merge(routes::agui::router())
-        .merge(routes::a2a::router())
-        .merge(routes::mcp::router())
-        .with_state(state)
 }

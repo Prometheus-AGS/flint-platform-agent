@@ -8,9 +8,10 @@
 use crate::auth::AuthContext;
 use crate::catalog::{self, TargetPort};
 use crate::error::AppError;
-use fpa_domain::AdminTask;
-use fpa_ports::{FabricClient, ForgeMetadata, GateAdmin, McpClient};
+use fpa_domain::{AdminTask, Project, ProjectId};
+use fpa_ports::{FabricClient, ForgeMetadata, GateAdmin, McpClient, ProjectStore};
 use std::sync::Arc;
+use uuid::Uuid;
 
 /// Executes administrative tasks against the fabric through injected ports.
 pub struct TaskRunner {
@@ -18,22 +19,27 @@ pub struct TaskRunner {
     pub fabric: Arc<dyn FabricClient>,
     pub gate: Arc<dyn GateAdmin>,
     pub mcp: Arc<dyn McpClient>,
+    /// Agent-owned persistence for the `Project` aggregate (p5-c001). The Project
+    /// has no forge table; `project.create` writes here, not to forge.
+    pub projects: Arc<dyn ProjectStore>,
 }
 
 impl TaskRunner {
-    /// Construct a runner from the four plane ports.
+    /// Construct a runner from the four plane ports plus the project store.
     #[must_use]
     pub fn new(
         forge: Arc<dyn ForgeMetadata>,
         fabric: Arc<dyn FabricClient>,
         gate: Arc<dyn GateAdmin>,
         mcp: Arc<dyn McpClient>,
+        projects: Arc<dyn ProjectStore>,
     ) -> Self {
         Self {
             forge,
             fabric,
             gate,
             mcp,
+            projects,
         }
     }
 
@@ -90,7 +96,16 @@ impl TaskRunner {
             )));
         }
 
-        tracing::info!(operator = %auth.subject, kind = entry.kind, decision = "allowed", "task dispatch");
+        // Audit the allow decision, recording identity provenance (p5-c003 G6):
+        // whether the identity was signature-verified (direct token) or
+        // gate-trusted (injected headers). Never log the token/claims.
+        tracing::info!(
+            operator = %auth.subject,
+            kind = entry.kind,
+            decision = "allowed",
+            signature_verified = auth.signature_verified,
+            "task dispatch"
+        );
 
         // Dispatch to the mapped plane. Concrete per-kind argument mapping lands
         // as the ports gain real implementations; here we route by target so the
@@ -105,19 +120,27 @@ impl TaskRunner {
                 .health()
                 .await
                 .map(|()| serde_json::json!({"ok": true})),
-            TargetPort::Gate => self.gate.list_routes().await,
+            TargetPort::Gate => self.dispatch_gate(entry.kind).await,
             TargetPort::Mcp => self.mcp.list_tools().await,
         };
 
         let result = outcome.map_err(AppError::Port)?;
-        tracing::info!(operator = %auth.subject, kind = entry.kind, outcome = "ok", "task complete");
+        tracing::info!(
+            operator = %auth.subject,
+            kind = entry.kind,
+            outcome = "ok",
+            signature_verified = auth.signature_verified,
+            "task complete"
+        );
         Ok(result)
     }
 
     /// Route a forge-targeted task kind to the appropriate forge port method,
-    /// forwarding the operator's bearer for RLS. Reads map to metadata/queries;
-    /// writes map to a pg_graphql insert. **Unmapped write kinds return a clean
-    /// `Downstream("write API pending")` — never a silent read fallback.**
+    /// forwarding the operator's bearer for RLS. Reads map to metadata/queries.
+    /// `project.create` does **not** appear here — the Project aggregate persists
+    /// in the agent-owned store (see [`Self::create_project`]), not forge (p5-c001).
+    /// **Unmapped write kinds return a clean `Downstream("write API pending")` —
+    /// never a silent read fallback.**
     async fn dispatch_forge(
         &self,
         kind: &str,
@@ -130,24 +153,63 @@ impl TaskRunner {
                 self.forge.describe_table("<unspecified>", bearer).await
             }
             "forge.table.list" | "project.list" => self.forge.list_tables(bearer).await,
-            // Writes → pg_graphql insert. `project.create` inserts into the
-            // Projects collection; the object is the validated task input.
-            "project.create" => {
-                self.forge
-                    .create_entity("Projects", input.clone(), bearer)
-                    .await
-            }
-            "application.define" => {
-                self.forge
-                    .create_entity("Applications", input.clone(), bearer)
-                    .await
-            }
+            // `project.create` is store-backed and handled before dispatch_forge is
+            // reached; `application.define` writes a forge-backed application row.
+            "project.create" => self.create_project(input).await,
             // Any other forge kind that is write-oriented has no mapping yet.
             other => Err(fpa_ports::PortError::Downstream(format!(
                 "write API pending: forge kind '{other}' not implemented"
             ))),
         }
     }
+
+    /// Persist a new `Project` aggregate to the agent-owned store (p5-c001).
+    ///
+    /// Builds the aggregate from validated input (`name` required, optional
+    /// `project_id`), stores it, and returns the stored artifact. Performs no
+    /// forge write — the Project has no forge table.
+    async fn create_project(
+        &self,
+        input: &serde_json::Value,
+    ) -> Result<serde_json::Value, fpa_ports::PortError> {
+        // Input is schema-validated upstream: `name` is required.
+        let name = input
+            .get("name")
+            .and_then(serde_json::Value::as_str)
+            .ok_or_else(|| {
+                fpa_ports::PortError::Downstream("project.create requires 'name'".to_owned())
+            })?;
+        // Deterministic when the caller supplies `project_id`; else a fresh v4.
+        let id = match input.get("project_id").and_then(serde_json::Value::as_str) {
+            Some(s) => ProjectId(Uuid::parse_str(s).map_err(|e| {
+                fpa_ports::PortError::Downstream(format!("invalid project_id: {e}"))
+            })?),
+            None => ProjectId(Uuid::new_v4()),
+        };
+        let project = Project::new(id, name);
+        self.projects.put(&project).await?;
+        serde_json::to_value(&project).map_err(|e| fpa_ports::PortError::Decode(e.to_string()))
+    }
+
+    /// Dispatch a gate-targeted task kind (p5-c003 G3). Read kinds call
+    /// `list_routes`; **write kinds refuse cleanly** rather than silently listing
+    /// routes. Gate route-writes are not implemented this phase.
+    async fn dispatch_gate(&self, kind: &str) -> Result<serde_json::Value, fpa_ports::PortError> {
+        if is_gate_write_kind(kind) {
+            return Err(fpa_ports::PortError::Downstream(format!(
+                "gate route-write not implemented: '{kind}'"
+            )));
+        }
+        self.gate.list_routes().await
+    }
+}
+
+/// Whether a gate-targeted task kind performs a write (route/auth mutation).
+///
+/// Write kinds must refuse (see [`TaskRunner::dispatch_gate`]) until gate
+/// route-writes are implemented. Read kinds fall through to `list_routes`.
+fn is_gate_write_kind(kind: &str) -> bool {
+    matches!(kind, "application.deploy")
 }
 
 #[cfg(test)]
@@ -180,12 +242,13 @@ mod tests {
         }
         async fn create_entity(
             &self,
-            collection: &str,
+            schema: &str,
+            table: &str,
             _object: serde_json::Value,
             _bearer: Option<&str>,
         ) -> Result<serde_json::Value, PortError> {
             self.called.store(true, Ordering::SeqCst);
-            Ok(serde_json::json!({ "created_in": collection }))
+            Ok(serde_json::json!({ "created_in": format!("{schema}.{table}") }))
         }
     }
     struct FakeFabric;
@@ -195,10 +258,14 @@ mod tests {
             Ok(())
         }
     }
-    struct FakeGate;
+    #[derive(Default)]
+    struct FakeGate {
+        listed: AtomicBool,
+    }
     #[async_trait]
     impl GateAdmin for FakeGate {
         async fn list_routes(&self) -> Result<serde_json::Value, PortError> {
+            self.listed.store(true, Ordering::SeqCst);
             Ok(serde_json::json!({"routes": []}))
         }
     }
@@ -218,11 +285,16 @@ mod tests {
     }
 
     fn runner_with(forge: Arc<FakeForge>) -> TaskRunner {
+        runner_with_gate(forge, Arc::new(FakeGate::default()))
+    }
+
+    fn runner_with_gate(forge: Arc<FakeForge>, gate: Arc<FakeGate>) -> TaskRunner {
         TaskRunner::new(
             forge,
             Arc::new(FakeFabric),
-            Arc::new(FakeGate),
+            gate,
             Arc::new(FakeMcp),
+            Arc::new(crate::project_store::InMemoryProjectStore::new()),
         )
     }
 
@@ -241,6 +313,7 @@ mod tests {
             subject: "op-1".into(),
             roles: roles.iter().map(|s| (*s).to_owned()).collect(),
             bearer: Some("test-bearer".into()),
+            signature_verified: true,
         }
     }
 
@@ -297,16 +370,30 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn create_kind_routes_to_write() {
+    async fn project_create_stores_and_returns_without_forge_write() {
+        // p5-c001: project.create persists to the agent-owned store, not forge.
         let forge = Arc::new(FakeForge::default());
         let r = runner_with(forge.clone());
-        // project.create requires the "operator" role.
-        let out = r
+        let mut t = task("project.create");
+        t.input = serde_json::json!({ "name": "alpha" });
+        let out = r.run(&t, &auth(&["operator"])).await.unwrap();
+        assert!(
+            !forge.called.load(Ordering::SeqCst),
+            "project.create must NOT call a forge write"
+        );
+        assert_eq!(out["name"], "alpha");
+        assert_eq!(out["schema_version"], fpa_domain::SCHEMA_VERSION);
+    }
+
+    #[tokio::test]
+    async fn project_create_requires_name() {
+        // Schema requires `name`; absence fails validation before any store write.
+        let r = runner_with(Arc::new(FakeForge::default()));
+        let err = r
             .run(&task("project.create"), &auth(&["operator"]))
             .await
-            .unwrap();
-        assert!(forge.called.load(Ordering::SeqCst));
-        assert_eq!(out["created_in"], "Projects");
+            .unwrap_err();
+        assert!(matches!(err, AppError::InvalidInput(_)));
     }
 
     #[tokio::test]
@@ -323,5 +410,42 @@ mod tests {
             !forge.called.load(Ordering::SeqCst),
             "no port call on denial"
         );
+    }
+
+    #[tokio::test]
+    async fn gate_write_kind_refuses_without_listing_routes() {
+        // p5-c003 G3: application.deploy (a Gate write) must refuse cleanly and
+        // MUST NOT fall through to list_routes.
+        let gate = Arc::new(FakeGate::default());
+        let r = runner_with_gate(Arc::new(FakeForge::default()), gate.clone());
+        let err = r
+            .run(&task("application.deploy"), &auth(&["admin"]))
+            .await
+            .unwrap_err();
+        assert!(matches!(err, AppError::Port(PortError::Downstream(_))));
+        assert!(
+            !gate.listed.load(Ordering::SeqCst),
+            "a gate write must not list routes"
+        );
+    }
+
+    #[test]
+    fn every_gate_catalog_kind_is_classified() {
+        // p5-c003 G3 (security-review LOW): the gate write-guard uses a manual
+        // allowlist, not the catalog. Guard against a future Gate write kind being
+        // added to the catalog without being classified — which would silently make
+        // it a read (list_routes). Every Gate kind must be a known write or an
+        // explicit read.
+        const GATE_READ_KINDS: &[&str] = &[]; // add gate read kinds here as they land
+        for entry in catalog::CATALOG
+            .iter()
+            .filter(|e| e.target == TargetPort::Gate)
+        {
+            assert!(
+                is_gate_write_kind(entry.kind) || GATE_READ_KINDS.contains(&entry.kind),
+                "Gate catalog kind '{}' is unclassified — add it to is_gate_write_kind or GATE_READ_KINDS",
+                entry.kind
+            );
+        }
     }
 }

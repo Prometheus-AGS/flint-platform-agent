@@ -473,14 +473,17 @@ dependencies = [
  "fpa-ports",
  "fpa-protocol",
  "futures",
+ "http-body-util",
  "jsonwebtoken",
  "reqwest",
  "serde",
  "serde_json",
  "tokio",
+ "tower",
  "tracing",
  "tracing-subscriber",
  "uuid",
+ "wiremock",
 ]
 
 [[package]]

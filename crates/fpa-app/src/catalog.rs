@@ -53,6 +53,8 @@ const SCHEMA_PROJECT_ID: &str =
 /// Schema requiring a table `name` string.
 const SCHEMA_TABLE_NAME: &str =
     r#"{"type":"object","required":["name"],"properties":{"name":{"type":"string"}}}"#;
+/// Schema for `project.create`: a required `name`, an optional `project_id`.
+const SCHEMA_PROJECT_CREATE: &str = r#"{"type":"object","required":["name"],"properties":{"name":{"type":"string"},"project_id":{"type":"string"}}}"#;
 
 /// The seeded administrative task catalog.
 ///
@@ -64,7 +66,7 @@ pub const CATALOG: &[CatalogEntry] = &[
         target: TargetPort::Forge,
         required_role: "operator",
         description: "Create a new project artifact.",
-        input_schema_json: SCHEMA_EMPTY,
+        input_schema_json: SCHEMA_PROJECT_CREATE,
     },
     CatalogEntry {
         kind: "project.inspect",

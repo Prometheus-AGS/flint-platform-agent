@@ -18,6 +18,10 @@ pub struct AuthContext {
     /// The raw gate-minted bearer, forwarded to downstreams that enforce RLS.
     /// `None` when the request carried no gate identity.
     pub bearer: Option<String>,
+    /// Whether the operator's JWT signature was verified by this agent (direct
+    /// token) as opposed to trusted from gate-injected headers (p5-c003 G6). Used
+    /// for audit provenance only — never gates behaviour.
+    pub signature_verified: bool,
 }
 
 // Manual Debug redacts the bearer — deriving would leak the token.
@@ -27,6 +31,7 @@ impl std::fmt::Debug for AuthContext {
             .field("subject", &self.subject)
             .field("roles", &self.roles)
             .field("bearer", &self.bearer.as_ref().map(|_| "<redacted>"))
+            .field("signature_verified", &self.signature_verified)
             .finish()
     }
 }
@@ -49,6 +54,7 @@ mod tests {
             subject: "op".into(),
             roles: vec!["viewer".into()],
             bearer: Some("gate-token-xyz".into()),
+            signature_verified: true,
         };
         assert_eq!(ctx.bearer.as_deref(), Some("gate-token-xyz"));
         assert!(ctx.has_role("viewer"));
@@ -67,6 +73,7 @@ mod tests {
             subject: "op".into(),
             roles: vec![],
             bearer: Some("super-secret".into()),
+            signature_verified: false,
         };
         let dbg = format!("{ctx:?}");
         assert!(

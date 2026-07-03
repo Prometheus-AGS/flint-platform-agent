@@ -7,11 +7,13 @@
 pub mod auth;
 pub mod catalog;
 pub mod error;
+pub mod project_store;
 pub mod task_runner;
 pub mod task_store;
 
 pub use auth::AuthContext;
 pub use catalog::{CatalogEntry, TargetPort, kinds, lookup};
 pub use error::AppError;
+pub use project_store::InMemoryProjectStore;
 pub use task_runner::TaskRunner;
 pub use task_store::{CancelOutcome, TaskRecord, TaskStore};

@@ -10,9 +10,11 @@ pub mod fabric;
 pub mod forge;
 pub mod gate;
 pub mod mcp;
+pub mod project_store;
 
 pub use error::PortError;
 pub use fabric::FabricClient;
 pub use forge::ForgeMetadata;
 pub use gate::GateAdmin;
 pub use mcp::McpClient;
+pub use project_store::ProjectStore;

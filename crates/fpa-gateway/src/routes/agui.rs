@@ -7,6 +7,7 @@
 //! The stub emits a `run_start` / `run_end` bracket; real runs splice the agent's
 //! event stream (text deltas, tool calls, state snapshots) between them.
 
+use crate::identity::OperatorContext;
 use axum::{
     Router,
     response::sse::{Event, KeepAlive, Sse},
@@ -26,9 +27,13 @@ pub fn router() -> Router<std::sync::Arc<crate::state::AppState>> {
 
 /// `GET /agui/stream` — open an AG-UI event stream.
 ///
+/// Requires an authenticated operator (p5-c003 G4): the `OperatorContext`
+/// extractor rejects unauthenticated requests before any event streams. The gate
+/// proxies/meters this surface, but the agent still authenticates it.
+///
 /// Stub: emits a `run_start`/`run_end` bracket. The real handler subscribes to
 /// the active agent run and forwards each [`AgUiEvent`] as it is produced.
-async fn stream() -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
+async fn stream(_operator: OperatorContext) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
     let events = [
         AgUiEvent::RunStart { model: None },
         AgUiEvent::RunEnd { stop_reason: None },
