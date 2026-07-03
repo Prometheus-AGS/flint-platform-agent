@@ -30,9 +30,16 @@ impl AppState {
     /// them into a [`TaskRunner`].
     #[must_use]
     pub fn new(config: GatewayConfig) -> Self {
-        let forge = Arc::new(ForgeAdapter::new(config.forge_url.clone()));
+        let mut forge_adapter = ForgeAdapter::new(config.forge_url.clone());
+        if let Some(prefix) = config.forge_rest_prefix.clone() {
+            forge_adapter = forge_adapter.with_rest_prefix(prefix);
+        }
+        let forge = Arc::new(forge_adapter);
         let fabric = Arc::new(FabricAdapter::new(config.fabric_endpoint.clone()));
-        let gate = Arc::new(GateAdapter::new(config.gate_admin_url.clone()));
+        let gate = Arc::new(
+            GateAdapter::new(config.gate_admin_url.clone())
+                .with_admin_token(config.gate_admin_token.clone()),
+        );
         let mcp = Arc::new(McpClientAdapter::new(
             // No downstream MCP server configured yet; placeholder endpoint.
             // Multi-server composition is a carry-forward.

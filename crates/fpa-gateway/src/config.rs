@@ -33,6 +33,11 @@ const ENV_JWT_AUDIENCE: &str = "FPA_JWT_AUDIENCE";
 /// trusted, non-public network. REQUIRED to be `true` when trusted identity
 /// headers are configured — otherwise trusting client-set headers is spoofable.
 const ENV_BEHIND_GATE: &str = "FPA_BEHIND_TRUSTED_GATE";
+/// Env var: forge REST path prefix (Supabase-style, e.g. `/rest`). Optional;
+/// defaults to the adapter default. Config so a forge change is a config fix.
+const ENV_FORGE_REST_PREFIX: &str = "FPA_FORGE_REST_PREFIX";
+/// Env var: bearer token for gate's admin API. Optional.
+const ENV_GATE_ADMIN_TOKEN: &str = "FPA_GATE_ADMIN_TOKEN";
 
 /// Default bind address when `FPA_GATEWAY_ADDR` is unset.
 const DEFAULT_ADDR: &str = "0.0.0.0:8088";
@@ -59,6 +64,10 @@ pub struct GatewayConfig {
     pub jwt_issuers: Vec<String>,
     /// Expected token audience(s), enforced on the verify path when non-empty.
     pub jwt_audiences: Vec<String>,
+    /// Forge REST path prefix override (`None` ⇒ adapter default).
+    pub forge_rest_prefix: Option<String>,
+    /// Bearer token for gate's admin API (`None` ⇒ unauthenticated admin calls).
+    pub gate_admin_token: Option<String>,
 }
 
 // Manual Debug redacts the HS256 secret — deriving would leak it in logs/panics.
@@ -77,6 +86,11 @@ impl std::fmt::Debug for GatewayConfig {
             .field("jwks_url", &self.jwks_url)
             .field("jwt_issuers", &self.jwt_issuers)
             .field("jwt_audiences", &self.jwt_audiences)
+            .field("forge_rest_prefix", &self.forge_rest_prefix)
+            .field(
+                "gate_admin_token",
+                &self.gate_admin_token.as_ref().map(|_| "<redacted>"),
+            )
             .finish()
     }
 }
@@ -156,6 +170,8 @@ impl GatewayConfig {
             jwks_url,
             jwt_issuers: csv(lookup(ENV_JWT_ISSUER)),
             jwt_audiences: csv(lookup(ENV_JWT_AUDIENCE)),
+            forge_rest_prefix: lookup(ENV_FORGE_REST_PREFIX).filter(|v| !v.trim().is_empty()),
+            gate_admin_token: lookup(ENV_GATE_ADMIN_TOKEN).filter(|v| !v.trim().is_empty()),
         })
     }
 }

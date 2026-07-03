@@ -5,29 +5,92 @@
 //! - **data** ← `POST {base}/graphql` forwarding the operator's gate bearer as
 //!   `Authorization: Bearer` so forge applies RLS (`rls_from_bearer`).
 //!
-//! Writes go through pg_graphql insert mutations on the same `/graphql` endpoint
-//! (`create_entity`), also under the operator bearer — forge (RLS + Keto/Cedar)
-//! is the authorization authority; the adapter forwards the bearer and never
-//! fabricates a credential or replicates authz.
+//! Writes (`create_entity`) go through forge's **REST CRUD** surface
+//! (`POST {base}{rest_prefix}/<table>`, Supabase-style — synced to forge p3-c013/
+//! c014), also under the operator bearer. `graphql_exec` remains available for
+//! GraphQL queries. Forge (RLS + Keto/Cedar) is the authorization authority; the
+//! adapter forwards the bearer and never fabricates a credential or replicates authz.
 
 use async_trait::async_trait;
 use fpa_ports::{ForgeMetadata, PortError};
 use serde_json::{Value, json};
 
+/// Default forge REST path prefix (Supabase-style). Override via config.
+const DEFAULT_REST_PREFIX: &str = "/rest";
+
 /// HTTP client adapter for Flint Forge Quarry.
 pub struct ForgeAdapter {
     /// Base URL of the Quarry gateway.
     pub base_url: String,
+    /// REST path prefix under which per-table CRUD endpoints are mounted
+    /// (`{base}{rest_prefix}/<table>`). Config-driven so a forge change is a
+    /// config fix, not a code change.
+    rest_prefix: String,
     http: reqwest::Client,
 }
 
 impl ForgeAdapter {
-    /// Construct an adapter pointed at a Quarry gateway base URL.
+    /// Construct an adapter pointed at a Quarry gateway base URL (default REST prefix).
     #[must_use]
     pub fn new(base_url: impl Into<String>) -> Self {
         Self {
             base_url: base_url.into(),
+            rest_prefix: DEFAULT_REST_PREFIX.to_owned(),
             http: reqwest::Client::new(),
+        }
+    }
+
+    /// Override the forge REST path prefix (from config, e.g. `FPA_FORGE_REST_PREFIX`).
+    #[must_use]
+    pub fn with_rest_prefix(mut self, prefix: impl Into<String>) -> Self {
+        let p = prefix.into();
+        if !p.trim().is_empty() {
+            self.rest_prefix = p;
+        }
+        self
+    }
+
+    /// POST a row to forge's REST table endpoint under the operator bearer.
+    /// Forge (RLS + Keto/Cedar) authorizes server-side; a missing bearer is
+    /// rejected (writes always require the operator's identity).
+    async fn rest_insert(
+        &self,
+        table: &str,
+        object: Value,
+        bearer: Option<&str>,
+    ) -> Result<Value, PortError> {
+        let bearer = bearer.ok_or_else(|| {
+            PortError::Unauthorized("forge write requires the operator bearer".to_owned())
+        })?;
+        let url = format!(
+            "{}{}/{}",
+            self.base_url.trim_end_matches('/'),
+            self.rest_prefix,
+            table
+        );
+        let resp = self
+            .http
+            .post(&url)
+            .bearer_auth(bearer)
+            .json(&object)
+            .send()
+            .await
+            .map_err(|e| PortError::Transport(e.to_string()))?;
+        match resp.status() {
+            reqwest::StatusCode::UNAUTHORIZED => Err(PortError::Unauthorized(
+                "forge rejected the bearer".to_owned(),
+            )),
+            reqwest::StatusCode::FORBIDDEN => Err(PortError::Unauthorized(
+                "forge policy denied (Keto/Cedar)".to_owned(),
+            )),
+            s if s.is_success() => resp
+                .json()
+                .await
+                // 201 with an empty/non-JSON body is still a success.
+                .or_else(|_| Ok(serde_json::json!({ "created": true }))),
+            s => Err(PortError::Downstream(format!(
+                "forge REST insert returned {s}"
+            ))),
         }
     }
 
@@ -90,14 +153,10 @@ impl ForgeMetadata for ForgeAdapter {
         object: Value,
         bearer: Option<&str>,
     ) -> Result<Value, PortError> {
-        // pg_graphql insert: `insertInto<Collection>Collection(objects: [$obj]) { records { ... } }`
-        // Forge (RLS + Keto/Cedar) authorizes server-side; we forward the bearer.
-        let mutation = format!(
-            "mutation Insert($objects: [{collection}InsertInput!]!) \
-             {{ insertInto{collection}Collection(objects: $objects) {{ affectedCount }} }}"
-        );
-        let variables = json!({ "objects": [object] });
-        graphql_exec(&self.http, &self.base_url, bearer, &mutation, variables).await
+        // Primary write path: forge's REST insert (`POST {base}{rest_prefix}/<table>`),
+        // synced to forge's current Supabase-style REST CRUD surface (p3-c013/c014).
+        // `graphql_exec` remains available for queries; REST is preferred for writes.
+        self.rest_insert(collection, object, bearer).await
     }
 }
 
@@ -280,14 +339,14 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn create_entity_posts_mutation_with_bearer() {
+    async fn create_entity_posts_rest_insert_with_bearer() {
+        // p4-c003: writes now go through forge's REST CRUD (POST /rest/<table>),
+        // not pg_graphql. 201 Created with the inserted row.
         let server = MockServer::start().await;
         Mock::given(method("POST"))
-            .and(path("/graphql"))
+            .and(path("/rest/Projects"))
             .and(header("authorization", "Bearer tok"))
-            .respond_with(ResponseTemplate::new(200).set_body_json(
-                json!({"data": {"insertIntoProjectsCollection": {"affectedCount": 1}}}),
-            ))
+            .respond_with(ResponseTemplate::new(201).set_body_json(json!({ "id": "p-1" })))
             .mount(&server)
             .await;
 
@@ -296,17 +355,29 @@ mod tests {
             .create_entity("Projects", json!({"name": "p1"}), Some("tok"))
             .await
             .expect("create");
-        assert_eq!(
-            out["data"]["insertIntoProjectsCollection"]["affectedCount"],
-            1
-        );
+        assert_eq!(out["id"], "p-1");
+    }
+
+    #[tokio::test]
+    async fn create_entity_honors_rest_prefix_override() {
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/rest/v1/Projects"))
+            .respond_with(ResponseTemplate::new(201).set_body_json(json!({ "ok": true })))
+            .mount(&server)
+            .await;
+        let adapter = ForgeAdapter::new(server.uri()).with_rest_prefix("/rest/v1");
+        adapter
+            .create_entity("Projects", json!({}), Some("tok"))
+            .await
+            .expect("create with prefix");
     }
 
     #[tokio::test]
     async fn create_entity_forge_403_is_unauthorized() {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
-            .and(path("/graphql"))
+            .and(path("/rest/Projects"))
             .respond_with(ResponseTemplate::new(403))
             .mount(&server)
             .await;
