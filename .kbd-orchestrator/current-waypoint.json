@@ -2,14 +2,14 @@
   "phase": "live-smoke-and-durable-store",
   "previousPhase": "integration-proof-and-debt-closure",
   "change": null,
-  "status": "plan_complete",
-  "currentTask": "plan.md written; c001 durable store (code) then c002 archive p5 (housekeeping). Run execute.",
-  "nextPendingChange": "p6-c001-durable-project-store",
+  "status": "execute_complete",
+  "currentTask": "2/2 changes done + green (fast tests; container test #[ignore]d). rust-reviewer on fpa-store-pg pending. Then reflect.",
+  "nextPendingChange": null,
   "sourceTool": "unknown",
-  "exactNextCommand": "/kbd-execute live-smoke-and-durable-store",
+  "exactNextCommand": "/kbd-reflect live-smoke-and-durable-store",
   "recommendedNextPhase": null,
   "parentPhase": null,
   "childPhases": [],
   "childPointer": null,
-  "updatedAt": "2026-07-03T16:12:00Z"
+  "updatedAt": "2026-07-03T16:32:00Z"
 }
