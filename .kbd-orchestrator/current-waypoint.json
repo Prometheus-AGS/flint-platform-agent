@@ -2,14 +2,14 @@
   "phase": "integration-proof-and-debt-closure",
   "previousPhase": "gate-admin-and-auth-hardening",
   "change": null,
-  "status": "plan_pending",
-  "currentTask": "4 change specs written + openspec-validated (p5-c001..c004). Run plan to order them.",
+  "status": "plan_complete",
+  "currentTask": "plan.md written; 4 changes ordered c001->c002->c003 (build) then c004 (proof). Run execute.",
   "nextPendingChange": "p5-c001-project-store",
   "sourceTool": "unknown",
-  "exactNextCommand": "/kbd-plan integration-proof-and-debt-closure",
+  "exactNextCommand": "/kbd-execute integration-proof-and-debt-closure",
   "recommendedNextPhase": null,
   "parentPhase": null,
   "childPhases": [],
   "childPointer": null,
-  "updatedAt": "2026-07-03T15:05:00Z"
+  "updatedAt": "2026-07-03T15:10:00Z"
 }
