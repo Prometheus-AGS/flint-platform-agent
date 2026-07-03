@@ -38,6 +38,10 @@ const ENV_BEHIND_GATE: &str = "FPA_BEHIND_TRUSTED_GATE";
 const ENV_FORGE_REST_PREFIX: &str = "FPA_FORGE_REST_PREFIX";
 /// Env var: bearer token for gate's admin API. Optional.
 const ENV_GATE_ADMIN_TOKEN: &str = "FPA_GATE_ADMIN_TOKEN";
+/// Env var: Postgres connection URL for the durable `ProjectStore` (p6-c001).
+/// Optional — when absent the agent uses the in-memory store. Contains a secret
+/// (password); never logged (redacted in `Debug`).
+const ENV_PROJECT_DB_URL: &str = "FPA_PROJECT_DB_URL";
 
 /// Default bind address when `FPA_GATEWAY_ADDR` is unset.
 const DEFAULT_ADDR: &str = "0.0.0.0:8088";
@@ -68,6 +72,9 @@ pub struct GatewayConfig {
     pub forge_rest_prefix: Option<String>,
     /// Bearer token for gate's admin API (`None` ⇒ unauthenticated admin calls).
     pub gate_admin_token: Option<String>,
+    /// Postgres URL for the durable `ProjectStore` (`None` ⇒ in-memory store).
+    /// Contains a secret; never logged.
+    pub project_db_url: Option<String>,
 }
 
 // Manual Debug redacts the HS256 secret — deriving would leak it in logs/panics.
@@ -90,6 +97,10 @@ impl std::fmt::Debug for GatewayConfig {
             .field(
                 "gate_admin_token",
                 &self.gate_admin_token.as_ref().map(|_| "<redacted>"),
+            )
+            .field(
+                "project_db_url",
+                &self.project_db_url.as_ref().map(|_| "<redacted>"),
             )
             .finish()
     }
@@ -172,6 +183,7 @@ impl GatewayConfig {
             jwt_audiences: csv(lookup(ENV_JWT_AUDIENCE)),
             forge_rest_prefix: lookup(ENV_FORGE_REST_PREFIX).filter(|v| !v.trim().is_empty()),
             gate_admin_token: lookup(ENV_GATE_ADMIN_TOKEN).filter(|v| !v.trim().is_empty()),
+            project_db_url: lookup(ENV_PROJECT_DB_URL).filter(|v| !v.trim().is_empty()),
         })
     }
 }

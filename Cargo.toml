@@ -13,6 +13,7 @@ members = [
   "crates/fpa-fabric",
   "crates/fpa-gate",
   "crates/fpa-mcp",
+  "crates/fpa-store-pg",
   # Interface / composition roots
   "crates/fpa-gateway",
   "crates/fpa-cli",
@@ -40,6 +41,9 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 # --- HTTP client + JWT (consume flint-gate only; matches flint-gate's own stack) ---
 reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
 jsonwebtoken = "9"
+# --- durable ProjectStore (agent-owned Postgres; driver consistent with fabric) ---
+tokio-postgres = { version = "0.7.18", features = ["with-serde_json-1", "with-uuid-1"] }
+deadpool-postgres = "0.14.1"
 # --- JSON Schema generation (optional, behind a feature in domain) ---
 schemars = "1"
 futures = "0.3"
@@ -55,6 +59,7 @@ fpa-forge = { path = "crates/fpa-forge" }
 fpa-fabric = { path = "crates/fpa-fabric" }
 fpa-gate = { path = "crates/fpa-gate" }
 fpa-mcp = { path = "crates/fpa-mcp" }
+fpa-store-pg = { path = "crates/fpa-store-pg" }
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Compile-time optimization for DEVELOPMENT (see CLAUDE.md "Fast Iteration").

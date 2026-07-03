@@ -24,6 +24,7 @@ fpa-forge.workspace = true
 fpa-fabric.workspace = true
 fpa-gate.workspace = true
 fpa-mcp.workspace = true
+fpa-store-pg.workspace = true
 
 axum.workspace = true
 tokio.workspace = true

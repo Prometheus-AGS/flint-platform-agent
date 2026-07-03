@@ -19,7 +19,7 @@ async fn main() -> anyhow::Result<()> {
 
     let config = GatewayConfig::from_env()?;
     let addr = config.addr;
-    let state = Arc::new(AppState::new(config));
+    let state = Arc::new(AppState::new(config).await);
 
     let app = build_router(state);
 

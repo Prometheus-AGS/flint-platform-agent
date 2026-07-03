@@ -74,6 +74,9 @@ fn test_config(forge: &str, gate: &str, fabric: &str) -> GatewayConfig {
         jwt_audiences: vec![],
         forge_rest_prefix: None,
         gate_admin_token: None,
+        // No DB URL → the in-memory ProjectStore (the durable path is proven in
+        // fpa-store-pg's own #[ignore]d testcontainers test).
+        project_db_url: None,
     }
 }
 
@@ -99,7 +102,7 @@ async fn harness() -> (axum::Router, MockServer, MockServer, MockServer) {
         .await;
 
     let config = test_config(&forge.uri(), &gate.uri(), &fabric.uri());
-    let state = Arc::new(AppState::new(config));
+    let state = Arc::new(AppState::new(config).await);
     (build_router(state), forge, gate, fabric)
 }
 
