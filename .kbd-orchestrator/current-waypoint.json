@@ -2,14 +2,14 @@
   "phase": "project-artifact-depth",
   "previousPhase": "live-smoke-and-durable-store",
   "change": null,
-  "status": "plan_pending",
-  "currentTask": "3 change specs written + validated (p7-c001 richer create + Store routing, p7-c002 application.define home, p7-c003 archive p1-p4). Run plan.",
+  "status": "plan_complete",
+  "currentTask": "plan.md written; c001+c002 same-file store-dispatch work, then c003 archival. Run execute.",
   "nextPendingChange": "p7-c001-richer-project-create",
   "sourceTool": "unknown",
-  "exactNextCommand": "/kbd-plan project-artifact-depth",
+  "exactNextCommand": "/kbd-execute project-artifact-depth",
   "recommendedNextPhase": null,
   "parentPhase": null,
   "childPhases": [],
   "childPointer": null,
-  "updatedAt": "2026-07-03T17:02:00Z"
+  "updatedAt": "2026-07-03T17:06:00Z"
 }
