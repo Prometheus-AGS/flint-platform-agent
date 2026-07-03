@@ -1,26 +1,33 @@
 # Goals — live-smoke-and-durable-store
 
-> Seeded from `integration-proof-and-debt-closure/reflection.md` → "Recommended Next
-> Phase". Phase 5 proved the system end-to-end **against mocked planes**; this phase
-> closes the two things that leaves open — **real wire compatibility** and **durable
-> persistence** — plus the p5 archival housekeeping.
+> Seeded from `integration-proof-and-debt-closure/reflection.md`. **RE-SCOPED at
+> assess (operator decision, 2026-07-03):** the live 3-plane smoke is **deferred to
+> its own future phase** — it can't run in this environment (Docker daemon
+> unreachable; forge has no compose, only a heavy custom pgrx PG-18 image). This
+> phase now focuses on the **durable ProjectStore** (implementable now) + **p5
+> archival**. The phase name is retained for continuity; "live-smoke" is deferred.
 
-## Primary goals
+## Primary goals (re-scoped)
 
-1. **Live smoke against real siblings.** Stand up real forge (pgrx Postgres-18 image)
-   + gate + fabric (their compose files) and run the same operator flow the p5
-   integration proof runs — `authenticate → project.create → list_routes (gate) →
-   fabric.health` — against the **live** services. Fix any wire drift the
-   HTTP-boundary mocks hid (paths, headers, status codes, auth handshake). This is
-   the one thing the mock-boundary proof left unproven (p5 debt #1).
+1. **Durable `ProjectStore` (agent-owned Postgres).** Add a Postgres-backed adapter
+   behind the existing `ProjectStore` port so projects survive a restart (p5 debt
+   #2). The port already exists; this is a **new adapter crate** (`fpa-store-pg` —
+   NOT in `fpa-app`, per hexagonal Rule 16) + composition-root wiring — no call-site
+   changes. Keep the in-memory adapter for tests. Store the `Project` aggregate whole
+   as a JSONB `body` column. Driver: `tokio-postgres` (sibling-consistent with
+   fabric) unless analyze finds a better fit.
 
-2. **Durable `ProjectStore`.** Add a Postgres-backed adapter behind the existing
-   `ProjectStore` port so projects survive a restart (p5 debt #2). The port already
-   exists; this is a new adapter + composition-root wiring — no call-site changes.
-   Keep the in-memory adapter for tests.
-
-3. **Archive the p5 OpenSpec changes.** `/opsx:archive` p5-c001..c004 into `specs/`
+2. **Archive the p5 OpenSpec changes.** `/opsx:archive` p5-c001..c004 into `specs/`
    (p5 debt #3) — housekeeping so the spec baseline reflects shipped capabilities.
+
+## Deferred to a future phase (operator decision)
+
+- **Live 3-plane smoke** against real forge/gate/fabric — needs colima/Docker up, a
+  heavy forge pgrx PG-18 build, and gate/fabric compose. Returns as its own phase
+  once the stack can be stood up. (The mock-boundary proof from p5 stands until then.)
+- **Durable store in a forge `flint_meta.projects` table** — rejected for this phase
+  because it inherits the same forge/Docker blocker; agent-owned Postgres is the
+  chosen persistence, consistent with the p5 decision.
 
 ## Success criteria
 
