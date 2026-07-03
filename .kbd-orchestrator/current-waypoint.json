@@ -2,14 +2,14 @@
   "phase": "live-smoke-and-durable-store",
   "previousPhase": "integration-proof-and-debt-closure",
   "change": null,
-  "status": "analyze_pending",
-  "currentTask": "assess done + re-scoped (live smoke DEFERRED by operator; durable store = agent Postgres, new fpa-store-pg). Analyze: confirm tokio-postgres vs sqlx + testcontainers versions.",
+  "status": "spec_pending",
+  "currentTask": "analysis done; tokio-postgres 0.7.18 + deadpool 0.14.1 + testcontainers 0.27 (verified). Spec: fpa-store-pg adapter + p5 archival.",
   "nextPendingChange": null,
   "sourceTool": "unknown",
-  "exactNextCommand": "/kbd-analyze live-smoke-and-durable-store",
+  "exactNextCommand": "/kbd-spec live-smoke-and-durable-store",
   "recommendedNextPhase": null,
   "parentPhase": null,
   "childPhases": [],
   "childPointer": null,
-  "updatedAt": "2026-07-03T15:55:00Z"
+  "updatedAt": "2026-07-03T16:02:00Z"
 }

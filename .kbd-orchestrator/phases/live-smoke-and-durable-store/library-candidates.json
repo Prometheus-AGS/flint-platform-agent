@@ -1,0 +1,60 @@
+{
+  "phase": "live-smoke-and-durable-store",
+  "generatedAt": "2026-07-03T16:00:00Z",
+  "mode": "stack-specified",
+  "researchTiersRun": ["tier3-registry"],
+  "researchSkipReason": "Driver family fixed by sibling consistency (fabric uses tokio-postgres); only version verification (Tier 3) was needed. No discovery/skeleton search warranted for a thin two-query adapter.",
+  "candidates": [
+    {
+      "id": "cand-001",
+      "name": "tokio-postgres",
+      "version": "0.7.18",
+      "verdict": "adopt",
+      "gap_id": "G2",
+      "role": "Postgres driver",
+      "evidence": "Registry-verified 0.7.18. flint-realtime-fabric uses tokio-postgres 0.7 with with-serde_json-1; sibling-consistent (Base Rule 9). Async, native, binds serde_json::Value for the JSONB body."
+    },
+    {
+      "id": "cand-002",
+      "name": "deadpool-postgres",
+      "version": "0.14.1",
+      "verdict": "adopt",
+      "gap_id": "G2",
+      "role": "connection pool",
+      "evidence": "Registry-verified 0.14.1. Idiomatic async pool over tokio-postgres; the agent is a long-lived server and needs pooling."
+    },
+    {
+      "id": "cand-003",
+      "name": "testcontainers + testcontainers-modules",
+      "version": "0.27.3 / 0.15.0",
+      "verdict": "adopt",
+      "gap_id": "G2",
+      "role": "dev-dep: ephemeral Postgres for the restart-survival test",
+      "evidence": "Registry-verified. Test is #[ignore]d-by-default (needs Docker, unavailable in this env)."
+    },
+    {
+      "id": "cand-004",
+      "name": "sqlx",
+      "version": "0.9.0",
+      "verdict": "reject",
+      "gap_id": "G2",
+      "role": "alternative driver (rejected)",
+      "evidence": "Compile-time query checking needs a live DB or offline metadata at build time — CI friction and a different driver family than the sibling. Not worth it for a two-query adapter."
+    }
+  ],
+  "build_required": [
+    {
+      "gap_id": "G2",
+      "summary": "New fpa-store-pg adapter crate implementing ProjectStore over tokio-postgres+deadpool; Project stored whole as JSONB in a single agent-owned table; composition root picks Pg-vs-InMem by FPA_PROJECT_DB_URL",
+      "capability_gap_id": null,
+      "verdict": "build",
+      "provenance": "operator (store location) + research (driver)"
+    },
+    {
+      "gap_id": "G4",
+      "summary": "Archive p5-c001..c004 OpenSpec changes into specs/ (housekeeping)",
+      "capability_gap_id": null,
+      "verdict": "build"
+    }
+  ]
+}
