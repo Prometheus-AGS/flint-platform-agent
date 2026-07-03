@@ -1,15 +1,15 @@
 {
-  "phase": "integration-proof-and-debt-closure",
-  "previousPhase": "gate-admin-and-auth-hardening",
+  "phase": "live-smoke-and-durable-store",
+  "previousPhase": "integration-proof-and-debt-closure",
   "change": null,
-  "status": "reflect_complete",
-  "currentTask": "reflection written; system runs end-to-end (mock-boundary). Seed next phase.",
+  "status": "assess_pending",
+  "currentTask": "phase seeded from prior reflection; run assess",
   "nextPendingChange": null,
   "sourceTool": "unknown",
-  "exactNextCommand": "/kbd-next-phase",
-  "recommendedNextPhase": "live-smoke-and-durable-store",
+  "exactNextCommand": "/kbd-assess live-smoke-and-durable-store",
+  "recommendedNextPhase": null,
   "parentPhase": null,
   "childPhases": [],
   "childPointer": null,
-  "updatedAt": "2026-07-03T15:40:00Z"
+  "updatedAt": "2026-07-03T15:45:00Z"
 }
