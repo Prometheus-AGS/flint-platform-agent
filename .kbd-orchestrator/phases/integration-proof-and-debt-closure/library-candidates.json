@@ -1,0 +1,53 @@
+{
+  "phase": "integration-proof-and-debt-closure",
+  "generatedAt": "2026-07-03T14:30:00Z",
+  "mode": "stack-specified",
+  "researchTiersRun": [],
+  "researchSkipReason": "All gaps are in-house Rust corrections or a port+in-memory adapter following the existing TaskStore pattern; no external library, framework, or skeleton is a candidate. Sibling contracts source-verified directly this phase.",
+  "candidates": [],
+  "build_required": [
+    {
+      "gap_id": "G1",
+      "summary": "Fix fpa-forge REST insert path to POST /{schema}/{table} (no /rest prefix, schema segment required)",
+      "capability_gap_id": null,
+      "verdict": "build"
+    },
+    {
+      "gap_id": "G2",
+      "summary": "Agent-owned ProjectStore port (trait) + in-memory adapter for the nested Project aggregate; durable backend deferred",
+      "capability_gap_id": null,
+      "verdict": "build",
+      "provenance": "user"
+    },
+    {
+      "gap_id": "G3",
+      "summary": "Gate write-kind guard: application.deploy (and any Gate write kind) must refuse, not fall through to list_routes",
+      "capability_gap_id": null,
+      "verdict": "build"
+    },
+    {
+      "gap_id": "G4",
+      "summary": "Authenticate GET /agui/stream via OperatorContext extractor",
+      "capability_gap_id": null,
+      "verdict": "build"
+    },
+    {
+      "gap_id": "G5",
+      "summary": "JWKS single-flight refresh (tokio::sync::Mutex) to close the double-fetch window",
+      "capability_gap_id": null,
+      "verdict": "build"
+    },
+    {
+      "gap_id": "G6",
+      "summary": "Surface signature_verified in the task audit record (thread through AuthContext)",
+      "capability_gap_id": null,
+      "verdict": "build"
+    },
+    {
+      "gap_id": "G7",
+      "summary": "Integration test harness (Rust tests/ + wiremock + axum test client + in-test RSA JWKS) exercising authenticate -> project.create -> list_routes -> fabric.health across AG-UI/A2A/MCP",
+      "capability_gap_id": null,
+      "verdict": "build"
+    }
+  ]
+}
