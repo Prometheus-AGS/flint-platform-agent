@@ -2,14 +2,14 @@
   "phase": "integration-proof-and-debt-closure",
   "previousPhase": "gate-admin-and-auth-hardening",
   "change": null,
-  "status": "spec_pending",
-  "currentTask": "analysis done; Project persistence = agent-owned ProjectStore (operator). All gaps BUILD/in-house. Run spec.",
-  "nextPendingChange": null,
+  "status": "plan_pending",
+  "currentTask": "4 change specs written + openspec-validated (p5-c001..c004). Run plan to order them.",
+  "nextPendingChange": "p5-c001-project-store",
   "sourceTool": "unknown",
-  "exactNextCommand": "/kbd-spec integration-proof-and-debt-closure",
+  "exactNextCommand": "/kbd-plan integration-proof-and-debt-closure",
   "recommendedNextPhase": null,
   "parentPhase": null,
   "childPhases": [],
   "childPointer": null,
-  "updatedAt": "2026-07-03T14:32:00Z"
+  "updatedAt": "2026-07-03T15:05:00Z"
 }
