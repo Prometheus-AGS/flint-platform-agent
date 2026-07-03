@@ -17,6 +17,11 @@
 .env
 .env.*
 !.env.example
+# Cargo build config is machine-local (assumes sccache + ld64.lld on PATH). The
+# committed .cargo/config.toml.example documents the fast-build settings; copy it
+# to .cargo/config.toml per machine. Committing the live file would break builds
+# on machines without those tools.
+.cargo/config.toml
 
 # OS / editor cruft
 .DS_Store

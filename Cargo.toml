@@ -56,6 +56,26 @@ fpa-fabric = { path = "crates/fpa-fabric" }
 fpa-gate = { path = "crates/fpa-gate" }
 fpa-mcp = { path = "crates/fpa-mcp" }
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Compile-time optimization for DEVELOPMENT (see CLAUDE.md "Fast Iteration").
+# Rust builds are expensive; these minimize dev compile time. Production builds
+# use `--release` (the default release profile — full optimization) at the end.
+# Source: The Rust Performance Book (nnethercote.github.io/perf-book).
+# ─────────────────────────────────────────────────────────────────────────────
+[profile.dev]
+# No debug info in dev builds — the single biggest dev-build speedup. (Debuggers
+# lose line info; we debug via tracing + tests, not gdb/lldb, so this is free.)
+debug = false
+# Incremental compilation: only recompile what changed. On by default for dev,
+# set explicitly so it is never lost.
+incremental = true
+
+[profile.dev.package."*"]
+# Dependencies rarely change — optimize them once, cache thereafter. Keeps our
+# own crates fast to recompile while deps stay optimized.
+opt-level = 2
+debug = false
+
 [workspace.lints.clippy]
 # Pedantic is the CI gate (run with -D warnings). Allows below are scaffold-stage
 # concessions, each to be revisited as the todo!() bodies are implemented.

@@ -66,6 +66,64 @@ The workspace is a `[workspace]` manifest with crates under `crates/`, prefixed 
 
 ---
 
+## Fast Iteration Workflow (Implementation-First)
+
+> This is the operator's explicit working philosophy. It **overrides** any default
+> instinct to test-as-you-go. Follow it.
+
+### Implement the whole plan first, then test
+
+**Nothing in a plan exists in isolation — the pieces only have meaning once the
+whole thing fits together.** If every little unit test passes but the system
+doesn't integrate, we have nothing. Therefore:
+
+1. **Get ALL the code implemented properly first.** Execute the full plan — every
+   change, every logical connection — before writing tests. Make sure there are no
+   gaps and no unimplemented important pieces. The whole system must be *present
+   and fitting together*.
+2. **Then, and only then, write integration tests** around the shape of the code
+   that is *proven to compile and work*. We don't know that true shape until the
+   end — get there fast and trust the rules.
+3. **Prefer full integration tests of whole sections** over unit tests that
+   validate nothing truly important. Err on the side of **more code implemented
+   correctly**, not more tests.
+4. **Wait for the test suite a MAXIMUM of 3 times per goal/epoch** (a goal spans
+   several KBD phases). A "wait" = one full `cargo test` run. Compile-checks do not
+   count. Save those 3 test passes for real integration milestones.
+
+This is safe **because the coding rules already front-load rigor** — think first,
+state assumptions, verify contracts, strong types, no `unwrap` in libs, hexagonal
+boundaries. Trust those rules during implementation; validate holistically at the
+end.
+
+### Compile only when necessary (Rust is expensive)
+
+Compiling Rust costs time, memory, and disk. **Do not compile after every
+component.**
+
+- Use **`cargo check`** (not `build`/`test`) to validate code, and run it
+  **sparingly — at natural section boundaries** (after several related components
+  are written *together*), not after each file. Batch changes, then check.
+- Reserve **`cargo test`** for the ≤3 integration milestones above.
+- Reserve **`cargo build --release`** (full optimization) for **production builds
+  at the end** — never during iteration.
+
+**Dev compile-time settings are configured** (`Cargo.toml` `[profile.dev]` +
+`.cargo/config.toml`) and must stay on:
+- `[profile.dev] debug = false` + `incremental = true` — biggest dev speedup.
+- `[profile.dev.package."*"] opt-level = 2` — optimize deps once, cache after.
+- **`ld64.lld`** fast linker (macOS) / mold (Linux) via `.cargo/config.toml`.
+- **`sccache`** rustc-wrapper — cross-build compilation cache.
+- (Parallel front-end `-Z threads` is nightly-only; skipped on stable 1.93.)
+
+`.cargo/config.toml` is **machine-local (gitignored)** — it assumes `sccache` +
+`ld64.lld` on PATH, which not every machine has. The committed
+**`.cargo/config.toml.example`** documents the settings; copy it to
+`.cargo/config.toml` per machine that has the tools. CI provides its own toolchain
+and ignores it.
+
+---
+
 ## Architecture: The Absolute Dependency Rule
 
 All three sibling planes enforce the **same strict hexagonal layering**, and this agent must too:

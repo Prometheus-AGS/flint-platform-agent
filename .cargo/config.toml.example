@@ -1,0 +1,21 @@
+# Cargo build configuration — DEVELOPMENT compile-time optimization.
+# See CLAUDE.md "Fast Iteration". Production builds use `--release`.
+#
+# NOTE: this file targets the developer's local machine (macOS/aarch64 with
+# `ld64.lld` + `sccache` installed via Homebrew). CI installs its own toolchain;
+# these settings are safe to skip there (they only speed builds up).
+
+[build]
+# sccache caches compiled crates across builds — a large repeat-build win.
+# Requires `sccache` on PATH (brew install sccache). If absent, remove this line.
+rustc-wrapper = "sccache"
+
+# macOS / Apple Silicon: use LLVM's ld64.lld — substantially faster than the
+# default system linker for incremental link steps.
+[target.aarch64-apple-darwin]
+rustflags = ["-C", "link-arg=-fuse-ld=/opt/homebrew/bin/ld64.lld"]
+
+# Linux (CI / other machines): mold if available, else lld. Commented — enable
+# per-machine. mold: brew/apt install mold; then:
+# [target.x86_64-unknown-linux-gnu]
+# rustflags = ["-C", "link-arg=-fuse-ld=mold"]
