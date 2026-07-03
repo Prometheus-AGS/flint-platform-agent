@@ -2,14 +2,14 @@
   "phase": "project-artifact-depth",
   "previousPhase": "live-smoke-and-durable-store",
   "change": null,
-  "status": "analyze_pending",
-  "currentTask": "assessment written; all gaps in-house serde over existing types, no external research. Analyze can --skip; design leans (friendly-map input, require-exists+upsert, TargetPort::Store) decidable at spec.",
+  "status": "spec_pending",
+  "currentTask": "analyze skipped (in-house, no external deps). Spec from assessment + 4 leans: richer project.create (serde), application.define store upsert, TargetPort::Store, p1-p4 archival.",
   "nextPendingChange": null,
   "sourceTool": "unknown",
-  "exactNextCommand": "/kbd-analyze project-artifact-depth --skip \"in-house serde over existing domain types; no external deps or research\"",
+  "exactNextCommand": "/kbd-spec project-artifact-depth",
   "recommendedNextPhase": null,
   "parentPhase": null,
   "childPhases": [],
   "childPointer": null,
-  "updatedAt": "2026-07-03T16:52:00Z"
+  "updatedAt": "2026-07-03T16:56:00Z"
 }

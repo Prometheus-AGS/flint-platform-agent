@@ -1,0 +1,9 @@
+{
+  "stage": "analyze",
+  "completedAt": "2026-07-03T22:00:11Z",
+  "outputs": [],
+  "nextStage": "spec",
+  "summaryForNext": "skipped: in-house serde over existing domain types; no external deps or research",
+  "skipped": true,
+  "skipReason": "in-house serde over existing domain types; no external deps or research"
+}
