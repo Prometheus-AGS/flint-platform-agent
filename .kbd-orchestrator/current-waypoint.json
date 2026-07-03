@@ -2,14 +2,14 @@
   "phase": "integration-proof-and-debt-closure",
   "previousPhase": "gate-admin-and-auth-hardening",
   "change": null,
-  "status": "assess_pending",
-  "currentTask": "phase seeded from prior reflection; run assess",
+  "status": "analyze_pending",
+  "currentTask": "assessment written; open questions need analyze (Project persistence decision, forge compose feasibility, IdP/test-key)",
   "nextPendingChange": null,
   "sourceTool": "unknown",
-  "exactNextCommand": "/kbd-assess integration-proof-and-debt-closure",
+  "exactNextCommand": "/kbd-analyze integration-proof-and-debt-closure",
   "recommendedNextPhase": null,
   "parentPhase": null,
   "childPhases": [],
   "childPointer": null,
-  "updatedAt": "2026-07-03T14:12:00Z"
+  "updatedAt": "2026-07-03T14:20:00Z"
 }
