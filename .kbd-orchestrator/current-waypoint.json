@@ -2,14 +2,14 @@
   "phase": "integration-proof-and-debt-closure",
   "previousPhase": "gate-admin-and-auth-hardening",
   "change": null,
-  "status": "execute_complete",
-  "currentTask": "all 4 changes implemented + green (cargo test 6/6 integration, clippy, fmt); security-reviewed. Run reflect.",
+  "status": "reflect_complete",
+  "currentTask": "reflection written; system runs end-to-end (mock-boundary). Seed next phase.",
   "nextPendingChange": null,
   "sourceTool": "unknown",
-  "exactNextCommand": "/kbd-reflect integration-proof-and-debt-closure",
-  "recommendedNextPhase": null,
+  "exactNextCommand": "/kbd-next-phase",
+  "recommendedNextPhase": "live-smoke-and-durable-store",
   "parentPhase": null,
   "childPhases": [],
   "childPointer": null,
-  "updatedAt": "2026-07-03T15:32:00Z"
+  "updatedAt": "2026-07-03T15:40:00Z"
 }
