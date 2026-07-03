@@ -1,15 +1,15 @@
 {
-  "phase": "live-smoke-and-durable-store",
-  "previousPhase": "integration-proof-and-debt-closure",
+  "phase": "project-artifact-depth",
+  "previousPhase": "live-smoke-and-durable-store",
   "change": null,
-  "status": "reflect_complete",
-  "currentTask": "reflection written; durable store shipped (code, reviewed) but not runtime-proven; live smoke still deferred. Next phase is an operator A/B choice (infra-gated live smoke vs no-infra project-artifact-depth).",
+  "status": "assess_pending",
+  "currentTask": "phase seeded from prior reflection (Option B, no-infra); run assess",
   "nextPendingChange": null,
   "sourceTool": "unknown",
-  "exactNextCommand": "/kbd-next-phase",
-  "recommendedNextPhase": "project-artifact-depth",
+  "exactNextCommand": "/kbd-assess project-artifact-depth",
+  "recommendedNextPhase": null,
   "parentPhase": null,
   "childPhases": [],
   "childPointer": null,
-  "updatedAt": "2026-07-03T16:40:00Z"
+  "updatedAt": "2026-07-03T16:45:00Z"
 }
