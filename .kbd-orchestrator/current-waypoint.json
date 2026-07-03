@@ -2,14 +2,14 @@
   "phase": "live-smoke-and-durable-store",
   "previousPhase": "integration-proof-and-debt-closure",
   "change": null,
-  "status": "plan_pending",
-  "currentTask": "2 change specs written + validated (p6-c001 durable store, p6-c002 archive p5). Run plan.",
+  "status": "plan_complete",
+  "currentTask": "plan.md written; c001 durable store (code) then c002 archive p5 (housekeeping). Run execute.",
   "nextPendingChange": "p6-c001-durable-project-store",
   "sourceTool": "unknown",
-  "exactNextCommand": "/kbd-plan live-smoke-and-durable-store",
+  "exactNextCommand": "/kbd-execute live-smoke-and-durable-store",
   "recommendedNextPhase": null,
   "parentPhase": null,
   "childPhases": [],
   "childPointer": null,
-  "updatedAt": "2026-07-03T16:08:00Z"
+  "updatedAt": "2026-07-03T16:12:00Z"
 }
