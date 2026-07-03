@@ -849,7 +849,6 @@ dependencies = [
  "serde_json",
  "testcontainers",
  "testcontainers-modules",
- "thiserror",
  "tokio",
  "tokio-postgres",
  "tracing",

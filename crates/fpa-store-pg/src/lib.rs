@@ -32,21 +32,18 @@ impl PgProjectStore {
     /// [`PortError::Transport`] if the URL is unparseable, the pool cannot be built,
     /// or the initial connection / schema bootstrap fails.
     pub async fn connect(db_url: &str) -> Result<Self, PortError> {
-        let pg_config: tokio_postgres::Config = db_url
-            .parse()
+        // Validate the URL up front so a malformed one surfaces a clear error
+        // before pool construction. The parsed value is discarded — deadpool does
+        // the authoritative parse below.
+        db_url
+            .parse::<tokio_postgres::Config>()
             .map_err(|e| PortError::Transport(format!("invalid FPA_PROJECT_DB_URL: {e}")))?;
 
+        // Hand the whole URL to deadpool so it parses every field itself
+        // (sslmode, options, connect_timeout, multi-host, …) — a manual field copy
+        // would silently drop those (e.g. downgrade `sslmode=require` to no-TLS).
         let mut cfg = Config::new();
-        cfg.dbname = pg_config.get_dbname().map(ToOwned::to_owned);
-        cfg.user = pg_config.get_user().map(ToOwned::to_owned);
-        cfg.password = pg_config
-            .get_password()
-            .map(|p| String::from_utf8_lossy(p).into_owned());
-        cfg.host = pg_config.get_hosts().iter().find_map(|h| match h {
-            tokio_postgres::config::Host::Tcp(host) => Some(host.clone()),
-            tokio_postgres::config::Host::Unix(_) => None,
-        });
-        cfg.port = pg_config.get_ports().first().copied();
+        cfg.url = Some(db_url.to_owned());
 
         let pool = cfg
             .create_pool(Some(Runtime::Tokio1), NoTls)

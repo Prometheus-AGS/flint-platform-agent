@@ -11,7 +11,6 @@ fpa-domain.workspace = true
 fpa-ports.workspace = true
 async-trait.workspace = true
 serde_json.workspace = true
-thiserror.workspace = true
 tracing.workspace = true
 tokio-postgres.workspace = true
 deadpool-postgres.workspace = true
