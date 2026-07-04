@@ -135,6 +135,8 @@ impl ProjectStore for PgProjectStore {
             .get()
             .await
             .map_err(|e| PortError::Transport(format!("pg pool get: {e}")))?;
+        // No ORDER BY: the port contract leaves ordering unspecified and callers that
+        // need determinism sort the returned vec (e.g. the runner's `list_projects`).
         let rows = client
             .query("SELECT body FROM fpa_projects", &[])
             .await

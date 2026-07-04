@@ -184,17 +184,7 @@ impl TaskRunner {
         &self,
         input: &serde_json::Value,
     ) -> Result<serde_json::Value, fpa_ports::PortError> {
-        let id = input
-            .get("project_id")
-            .and_then(serde_json::Value::as_str)
-            .ok_or_else(|| {
-                fpa_ports::PortError::Downstream("project.inspect requires 'project_id'".to_owned())
-            })
-            .and_then(|s| {
-                Uuid::parse_str(s).map(ProjectId).map_err(|e| {
-                    fpa_ports::PortError::Downstream(format!("invalid project_id: {e}"))
-                })
-            })?;
+        let id = parse_project_id(input)?;
         let project = self.projects.get(&id).await?.ok_or_else(|| {
             fpa_ports::PortError::Downstream(format!("unknown project '{}'", id.0))
         })?;
@@ -206,8 +196,7 @@ impl TaskRunner {
     async fn list_projects(&self) -> Result<serde_json::Value, fpa_ports::PortError> {
         let mut projects = self.projects.list().await?;
         projects.sort_by_key(|p| p.id.0);
-        serde_json::to_value(serde_json::json!({ "projects": projects }))
-            .map_err(|e| fpa_ports::PortError::Decode(e.to_string()))
+        Ok(serde_json::json!({ "projects": projects }))
     }
 
     /// Persist a new `Project` aggregate to the agent-owned store (p7-c001).
@@ -262,19 +251,7 @@ impl TaskRunner {
         &self,
         input: &serde_json::Value,
     ) -> Result<serde_json::Value, fpa_ports::PortError> {
-        let project_id = input
-            .get("project_id")
-            .and_then(serde_json::Value::as_str)
-            .ok_or_else(|| {
-                fpa_ports::PortError::Downstream(
-                    "application.define requires 'project_id'".to_owned(),
-                )
-            })
-            .and_then(|s| {
-                Uuid::parse_str(s).map(ProjectId).map_err(|e| {
-                    fpa_ports::PortError::Downstream(format!("invalid project_id: {e}"))
-                })
-            })?;
+        let project_id = parse_project_id(input)?;
         let app: ApplicationDef = input
             .get("application")
             .ok_or_else(|| {
@@ -324,6 +301,24 @@ impl TaskRunner {
 /// route-writes are implemented. Read kinds fall through to `list_routes`.
 fn is_gate_write_kind(kind: &str) -> bool {
     matches!(kind, "application.deploy")
+}
+
+/// Parse a **required** `project_id` (a UUID string) from task input into a
+/// [`ProjectId`]. Missing/non-string → `Downstream("… requires 'project_id'")`;
+/// unparseable → `Downstream("invalid project_id: …")`. Shared by the store-backed
+/// kinds that operate on an existing project (`application.define`,
+/// `project.inspect`). `project.create` treats `project_id` as *optional* and does
+/// not use this.
+fn parse_project_id(input: &serde_json::Value) -> Result<ProjectId, fpa_ports::PortError> {
+    input
+        .get("project_id")
+        .and_then(serde_json::Value::as_str)
+        .ok_or_else(|| fpa_ports::PortError::Downstream("requires 'project_id'".to_owned()))
+        .and_then(|s| {
+            Uuid::parse_str(s)
+                .map(ProjectId)
+                .map_err(|e| fpa_ports::PortError::Downstream(format!("invalid project_id: {e}")))
+        })
 }
 
 /// Deserialize an optional nested array field from `input` into `target`, if present.
