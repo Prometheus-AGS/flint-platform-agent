@@ -1,15 +1,15 @@
 {
-  "phase": "live-smoke-and-durable-proof",
-  "previousPhase": "project-read-and-list",
+  "phase": "real-sibling-smoke",
+  "previousPhase": "live-smoke-and-durable-proof",
   "change": null,
-  "status": "reflect_complete",
-  "currentTask": "LIVE SMOKE GREEN \u2014 agent proven real (durable PG + containerized :8088 + 6/6 smoke). Next phase is operator A/B: real-sibling-smoke vs smoke-in-ci-and-crud-completion.",
-  "nextPendingChange": "p9-c001-durable-proof-runner",
+  "status": "assess_pending",
+  "currentTask": "phase seeded (Option A, operator). Risk-ordered: real gate+fabric first, forge pgrx a stretch. Run assess.",
+  "nextPendingChange": null,
   "sourceTool": "unknown",
-  "exactNextCommand": "/kbd-next-phase",
-  "recommendedNextPhase": "real-sibling-smoke",
+  "exactNextCommand": "/kbd-assess real-sibling-smoke",
+  "recommendedNextPhase": null,
   "parentPhase": null,
   "childPhases": [],
   "childPointer": null,
-  "updatedAt": "2026-07-04T15:25:00Z"
+  "updatedAt": "2026-07-04T15:30:00Z"
 }
