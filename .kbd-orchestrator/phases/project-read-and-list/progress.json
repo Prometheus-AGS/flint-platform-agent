@@ -3,7 +3,7 @@
   "parentPhase": null,
   "childPhases": [],
   "childPointer": null,
-  "assessment_complete": false,
+  "assessment_complete": true,
   "analyze_complete": false,
   "spec_complete": false,
   "plan_complete": false,

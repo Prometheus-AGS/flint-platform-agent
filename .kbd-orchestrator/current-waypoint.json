@@ -2,14 +2,14 @@
   "phase": "project-read-and-list",
   "previousPhase": "project-artifact-depth",
   "change": null,
-  "status": "assess_pending",
-  "currentTask": "phase seeded from prior reflection (Option A, no-infra); run assess",
+  "status": "analyze_pending",
+  "currentTask": "assessment written; all in-house over ProjectStore, no external research. Analyze can --skip; leans: full list, whole-aggregate inspect, single-tenant + RLS note.",
   "nextPendingChange": null,
   "sourceTool": "unknown",
-  "exactNextCommand": "/kbd-assess project-read-and-list",
+  "exactNextCommand": "/kbd-analyze project-read-and-list --skip \"in-house store reads over existing ProjectStore; no external deps or research\"",
   "recommendedNextPhase": null,
   "parentPhase": null,
   "childPhases": [],
   "childPointer": null,
-  "updatedAt": "2026-07-04T00:30:00Z"
+  "updatedAt": "2026-07-04T00:36:00Z"
 }
