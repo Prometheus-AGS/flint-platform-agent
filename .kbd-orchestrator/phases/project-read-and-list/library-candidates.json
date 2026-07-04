@@ -1,0 +1,28 @@
+{
+  "phase": "project-read-and-list",
+  "generatedAt": "2026-07-04T00:38:00Z",
+  "mode": "skipped",
+  "researchTiersRun": [],
+  "researchSkipReason": "in-house store reads over existing ProjectStore; no external deps or research. inspect/list are retargets to the store; ProjectStore::list() is trivial over the in-mem HashMap and the Pg table (deps already present from p6); p6 archival is the openspec CLI.",
+  "candidates": [],
+  "build_required": [
+    {
+      "gap_id": "G1",
+      "summary": "Retarget project.inspect to TargetPort::Store; dispatch_store arm -> store.get by project_id (whole aggregate; unknown id clean error; no forge call)",
+      "capability_gap_id": null,
+      "verdict": "build"
+    },
+    {
+      "gap_id": "G2",
+      "summary": "Add ProjectStore::list() to the port + both adapters (InMemory values().cloned(); Pg SELECT body); retarget project.list to Store",
+      "capability_gap_id": null,
+      "verdict": "build"
+    },
+    {
+      "gap_id": "G4",
+      "summary": "Archive p6-c001/c002 into specs/ (housekeeping)",
+      "capability_gap_id": null,
+      "verdict": "build"
+    }
+  ]
+}
