@@ -10,5 +10,5 @@ pub mod project;
 pub mod task;
 
 pub use ids::{ApplicationId, OperatorId, ProjectId, SessionId, SubAgentId, TaskId};
-pub use project::{Project, SCHEMA_VERSION};
+pub use project::{ApplicationDef, Project, SCHEMA_VERSION, SubAgentDef};
 pub use task::{AdminTask, TaskState};

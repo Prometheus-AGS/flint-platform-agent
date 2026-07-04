@@ -13,6 +13,9 @@ pub enum TargetPort {
     Fabric,
     Gate,
     Mcp,
+    /// Agent-owned aggregate writes (the `ProjectStore`) — `project.create`,
+    /// `application.define`. Not an external plane; handled in-process (p7-c001).
+    Store,
 }
 
 /// A single catalog entry describing one administrative task kind.
@@ -53,8 +56,14 @@ const SCHEMA_PROJECT_ID: &str =
 /// Schema requiring a table `name` string.
 const SCHEMA_TABLE_NAME: &str =
     r#"{"type":"object","required":["name"],"properties":{"name":{"type":"string"}}}"#;
-/// Schema for `project.create`: a required `name`, an optional `project_id`.
-const SCHEMA_PROJECT_CREATE: &str = r#"{"type":"object","required":["name"],"properties":{"name":{"type":"string"},"project_id":{"type":"string"}}}"#;
+/// Schema for `project.create`: required `name`; optional `project_id` and the
+/// nested aggregate arrays/params. A LIGHT guard — the deep validation is the serde
+/// map into the typed `Project` collections in the runner (arrays are `type: array`
+/// only; per-item shape is checked by deserialization).
+const SCHEMA_PROJECT_CREATE: &str = r#"{"type":"object","required":["name"],"properties":{"name":{"type":"string"},"project_id":{"type":"string"},"applications":{"type":"array"},"sub_agents":{"type":"array"},"schemas":{"type":"array"},"realtime":{"type":"object"},"entity_meta":{"type":"array"}}}"#;
+/// Schema for `application.define`: a required `project_id` and an `application`
+/// object (deserialized to an `ApplicationDef` in the runner).
+const SCHEMA_APPLICATION_DEFINE: &str = r#"{"type":"object","required":["project_id","application"],"properties":{"project_id":{"type":"string"},"application":{"type":"object"}}}"#;
 
 /// The seeded administrative task catalog.
 ///
@@ -63,7 +72,7 @@ const SCHEMA_PROJECT_CREATE: &str = r#"{"type":"object","required":["name"],"pro
 pub const CATALOG: &[CatalogEntry] = &[
     CatalogEntry {
         kind: "project.create",
-        target: TargetPort::Forge,
+        target: TargetPort::Store,
         required_role: "operator",
         description: "Create a new project artifact.",
         input_schema_json: SCHEMA_PROJECT_CREATE,
@@ -84,10 +93,10 @@ pub const CATALOG: &[CatalogEntry] = &[
     },
     CatalogEntry {
         kind: "application.define",
-        target: TargetPort::Forge,
+        target: TargetPort::Store,
         required_role: "operator",
         description: "Define an application within a project.",
-        input_schema_json: SCHEMA_EMPTY,
+        input_schema_json: SCHEMA_APPLICATION_DEFINE,
     },
     CatalogEntry {
         kind: "application.deploy",

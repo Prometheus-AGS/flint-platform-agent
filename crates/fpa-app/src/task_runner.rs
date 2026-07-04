@@ -8,7 +8,7 @@
 use crate::auth::AuthContext;
 use crate::catalog::{self, TargetPort};
 use crate::error::AppError;
-use fpa_domain::{AdminTask, Project, ProjectId};
+use fpa_domain::{AdminTask, ApplicationDef, Project, ProjectId};
 use fpa_ports::{FabricClient, ForgeMetadata, GateAdmin, McpClient, ProjectStore};
 use std::sync::Arc;
 use uuid::Uuid;
@@ -122,6 +122,7 @@ impl TaskRunner {
                 .map(|()| serde_json::json!({"ok": true})),
             TargetPort::Gate => self.dispatch_gate(entry.kind).await,
             TargetPort::Mcp => self.mcp.list_tools().await,
+            TargetPort::Store => self.dispatch_store(entry.kind, &input).await,
         };
 
         let result = outcome.map_err(AppError::Port)?;
@@ -137,14 +138,14 @@ impl TaskRunner {
 
     /// Route a forge-targeted task kind to the appropriate forge port method,
     /// forwarding the operator's bearer for RLS. Reads map to metadata/queries.
-    /// `project.create` does **not** appear here — the Project aggregate persists
-    /// in the agent-owned store (see [`Self::create_project`]), not forge (p5-c001).
+    /// Store-backed kinds (`project.create`, `application.define`) are NOT here —
+    /// they route via [`Self::dispatch_store`] (`TargetPort::Store`).
     /// **Unmapped write kinds return a clean `Downstream("write API pending")` —
     /// never a silent read fallback.**
     async fn dispatch_forge(
         &self,
         kind: &str,
-        input: &serde_json::Value,
+        _input: &serde_json::Value,
         bearer: Option<&str>,
     ) -> Result<serde_json::Value, fpa_ports::PortError> {
         match kind {
@@ -153,9 +154,6 @@ impl TaskRunner {
                 self.forge.describe_table("<unspecified>", bearer).await
             }
             "forge.table.list" | "project.list" => self.forge.list_tables(bearer).await,
-            // `project.create` is store-backed and handled before dispatch_forge is
-            // reached; `application.define` writes a forge-backed application row.
-            "project.create" => self.create_project(input).await,
             // Any other forge kind that is write-oriented has no mapping yet.
             other => Err(fpa_ports::PortError::Downstream(format!(
                 "write API pending: forge kind '{other}' not implemented"
@@ -163,11 +161,30 @@ impl TaskRunner {
         }
     }
 
-    /// Persist a new `Project` aggregate to the agent-owned store (p5-c001).
+    /// Route an agent-owned aggregate write (`TargetPort::Store`) to its handler.
+    /// These mutate the `Project` aggregate in the `ProjectStore` — no external plane.
+    async fn dispatch_store(
+        &self,
+        kind: &str,
+        input: &serde_json::Value,
+    ) -> Result<serde_json::Value, fpa_ports::PortError> {
+        match kind {
+            "project.create" => self.create_project(input).await,
+            "application.define" => self.define_application(input).await,
+            other => Err(fpa_ports::PortError::Downstream(format!(
+                "store kind '{other}' not implemented"
+            ))),
+        }
+    }
+
+    /// Persist a new `Project` aggregate to the agent-owned store (p7-c001).
     ///
-    /// Builds the aggregate from validated input (`name` required, optional
-    /// `project_id`), stores it, and returns the stored artifact. Performs no
-    /// forge write — the Project has no forge table.
+    /// Builds the aggregate from validated input: `name` required; `id` from
+    /// `project_id` or a fresh v4; `schema_version` is **server-owned** (always the
+    /// current `SCHEMA_VERSION` — a client value is ignored). The nested collections
+    /// (`applications`/`sub_agents`/`schemas`/`realtime`/`entity_meta`) are
+    /// serde-deserialized into their typed forms; a malformed nested item is rejected
+    /// BEFORE any store write. Performs no forge write — the Project has no forge table.
     async fn create_project(
         &self,
         input: &serde_json::Value,
@@ -186,7 +203,71 @@ impl TaskRunner {
             })?),
             None => ProjectId(Uuid::new_v4()),
         };
-        let project = Project::new(id, name);
+        // Start from an empty aggregate (server owns id + schema_version), then map
+        // any nested input onto it via serde — deserialization IS the validation.
+        let mut project = Project::new(id, name);
+        deser_field(input, "applications", &mut project.applications)?;
+        deser_field(input, "sub_agents", &mut project.sub_agents)?;
+        deser_field(input, "schemas", &mut project.schemas)?;
+        deser_field(input, "entity_meta", &mut project.entity_meta)?;
+        if let Some(rt) = input.get("realtime") {
+            project.realtime = serde_json::from_value(rt.clone()).map_err(|e| {
+                fpa_ports::PortError::Downstream(format!("invalid 'realtime': {e}"))
+            })?;
+        }
+        self.projects.put(&project).await?;
+        serde_json::to_value(&project).map_err(|e| fpa_ports::PortError::Decode(e.to_string()))
+    }
+
+    /// Define (upsert) an application within an existing project (p7-c002).
+    ///
+    /// Loads the project by `project_id` from the store, upserts the supplied
+    /// `ApplicationDef` by its id (replace same-id, else append — immutably), and
+    /// persists the mutated aggregate. An unknown `project_id` is rejected; no
+    /// project is created implicitly.
+    async fn define_application(
+        &self,
+        input: &serde_json::Value,
+    ) -> Result<serde_json::Value, fpa_ports::PortError> {
+        let project_id = input
+            .get("project_id")
+            .and_then(serde_json::Value::as_str)
+            .ok_or_else(|| {
+                fpa_ports::PortError::Downstream(
+                    "application.define requires 'project_id'".to_owned(),
+                )
+            })
+            .and_then(|s| {
+                Uuid::parse_str(s).map(ProjectId).map_err(|e| {
+                    fpa_ports::PortError::Downstream(format!("invalid project_id: {e}"))
+                })
+            })?;
+        let app: ApplicationDef = input
+            .get("application")
+            .ok_or_else(|| {
+                fpa_ports::PortError::Downstream(
+                    "application.define requires 'application'".to_owned(),
+                )
+            })
+            .and_then(|v| {
+                serde_json::from_value(v.clone()).map_err(|e| {
+                    fpa_ports::PortError::Downstream(format!("invalid 'application': {e}"))
+                })
+            })?;
+
+        let mut project = self.projects.get(&project_id).await?.ok_or_else(|| {
+            fpa_ports::PortError::Downstream(format!("unknown project '{}'", project_id.0))
+        })?;
+
+        // Immutable upsert by application id: keep all others, drop the same id, append.
+        let mut apps: Vec<ApplicationDef> = project
+            .applications
+            .into_iter()
+            .filter(|a| a.id != app.id)
+            .collect();
+        apps.push(app);
+        project.applications = apps;
+
         self.projects.put(&project).await?;
         serde_json::to_value(&project).map_err(|e| fpa_ports::PortError::Decode(e.to_string()))
     }
@@ -210,6 +291,24 @@ impl TaskRunner {
 /// route-writes are implemented. Read kinds fall through to `list_routes`.
 fn is_gate_write_kind(kind: &str) -> bool {
     matches!(kind, "application.deploy")
+}
+
+/// Deserialize an optional nested array field from `input` into `target`, if present.
+///
+/// Absent → leave `target` untouched (its `#[serde(default)]` empty). Present but
+/// malformed → a `Downstream` error naming the field (rejected before any store
+/// write). This is where "serde IS the validation" is enforced for the nested
+/// `Project` collections (p7-c001).
+fn deser_field<T: serde::de::DeserializeOwned>(
+    input: &serde_json::Value,
+    field: &str,
+    target: &mut T,
+) -> Result<(), fpa_ports::PortError> {
+    if let Some(v) = input.get(field) {
+        *target = serde_json::from_value(v.clone())
+            .map_err(|e| fpa_ports::PortError::Downstream(format!("invalid '{field}': {e}")))?;
+    }
+    Ok(())
 }
 
 #[cfg(test)]
@@ -295,6 +394,17 @@ mod tests {
             gate,
             Arc::new(FakeMcp),
             Arc::new(crate::project_store::InMemoryProjectStore::new()),
+        )
+    }
+
+    /// A runner sharing the given store, so a test can assert on stored state.
+    fn runner_with_store(store: Arc<crate::project_store::InMemoryProjectStore>) -> TaskRunner {
+        TaskRunner::new(
+            Arc::new(FakeForge::default()),
+            Arc::new(FakeFabric),
+            Arc::new(FakeGate::default()),
+            Arc::new(FakeMcp),
+            store,
         )
     }
 
@@ -394,6 +504,134 @@ mod tests {
             .await
             .unwrap_err();
         assert!(matches!(err, AppError::InvalidInput(_)));
+    }
+
+    // ---- p7-c001: richer project.create ----
+
+    fn app_json(id: u128, name: &str) -> serde_json::Value {
+        serde_json::json!({
+            "id": Uuid::from_u128(id),
+            "name": name,
+            "components": [],
+            "modules": [],
+            "plugins": []
+        })
+    }
+
+    #[tokio::test]
+    async fn project_create_stores_full_nested_aggregate() {
+        let store = Arc::new(crate::project_store::InMemoryProjectStore::new());
+        let r = runner_with_store(store.clone());
+        let pid = Uuid::from_u128(0x7001);
+        let mut t = task("project.create");
+        t.input = serde_json::json!({
+            "name": "rich", "project_id": pid,
+            "applications": [ app_json(0xA1, "app-one") ]
+        });
+        let out = r.run(&t, &auth(&["operator"])).await.expect("create");
+        assert_eq!(out["applications"][0]["name"], "app-one");
+        // Persisted with the nested application.
+        let stored = store.get(&ProjectId(pid)).await.unwrap().expect("stored");
+        assert_eq!(stored.applications.len(), 1);
+        assert_eq!(stored.applications[0].name, "app-one");
+    }
+
+    #[tokio::test]
+    async fn project_create_rejects_malformed_nested_and_stores_nothing() {
+        let store = Arc::new(crate::project_store::InMemoryProjectStore::new());
+        let r = runner_with_store(store.clone());
+        let pid = Uuid::from_u128(0x7002);
+        let mut t = task("project.create");
+        // `applications` array with a wrong-typed item (missing/!string name).
+        t.input = serde_json::json!({
+            "name": "bad", "project_id": pid,
+            "applications": [ { "id": Uuid::from_u128(1), "name": 123 } ]
+        });
+        let err = r.run(&t, &auth(&["operator"])).await.unwrap_err();
+        assert!(matches!(err, AppError::Port(PortError::Downstream(_))));
+        assert!(
+            store.get(&ProjectId(pid)).await.unwrap().is_none(),
+            "no project stored on malformed nested input"
+        );
+    }
+
+    #[tokio::test]
+    async fn project_create_ignores_client_schema_version() {
+        let store = Arc::new(crate::project_store::InMemoryProjectStore::new());
+        let r = runner_with_store(store.clone());
+        let pid = Uuid::from_u128(0x7003);
+        let mut t = task("project.create");
+        t.input = serde_json::json!({ "name": "v", "project_id": pid, "schema_version": 999 });
+        r.run(&t, &auth(&["operator"])).await.expect("create");
+        let stored = store.get(&ProjectId(pid)).await.unwrap().expect("stored");
+        assert_eq!(
+            stored.schema_version,
+            fpa_domain::SCHEMA_VERSION,
+            "server owns schema_version"
+        );
+    }
+
+    #[tokio::test]
+    async fn project_create_routes_via_store_not_other_ports() {
+        // Store arm: no forge/gate/mcp call for project.create.
+        let forge = Arc::new(FakeForge::default());
+        let gate = Arc::new(FakeGate::default());
+        let r = runner_with_gate(forge.clone(), gate.clone());
+        let mut t = task("project.create");
+        t.input = serde_json::json!({ "name": "routed" });
+        r.run(&t, &auth(&["operator"])).await.expect("create");
+        assert!(!forge.called.load(Ordering::SeqCst), "no forge call");
+        assert!(!gate.listed.load(Ordering::SeqCst), "no gate call");
+    }
+
+    // ---- p7-c002: application.define ----
+
+    async fn seed_project(
+        store: &Arc<crate::project_store::InMemoryProjectStore>,
+        r: &TaskRunner,
+        pid: Uuid,
+    ) {
+        let mut t = task("project.create");
+        t.input = serde_json::json!({ "name": "host", "project_id": pid });
+        r.run(&t, &auth(&["operator"])).await.expect("seed");
+        let _ = store;
+    }
+
+    #[tokio::test]
+    async fn application_define_upserts_into_existing_project() {
+        let store = Arc::new(crate::project_store::InMemoryProjectStore::new());
+        let r = runner_with_store(store.clone());
+        let pid = Uuid::from_u128(0x7010);
+        seed_project(&store, &r, pid).await;
+
+        // Define app A1.
+        let mut t = task("application.define");
+        t.input = serde_json::json!({ "project_id": pid, "application": app_json(0xA1, "first") });
+        r.run(&t, &auth(&["operator"])).await.expect("define");
+        // Re-define same id with a new name → upsert (single entry, second wins).
+        let mut t2 = task("application.define");
+        t2.input =
+            serde_json::json!({ "project_id": pid, "application": app_json(0xA1, "second") });
+        r.run(&t2, &auth(&["operator"])).await.expect("redefine");
+
+        let stored = store.get(&ProjectId(pid)).await.unwrap().expect("stored");
+        assert_eq!(stored.applications.len(), 1, "upsert, not duplicate");
+        assert_eq!(stored.applications[0].name, "second");
+    }
+
+    #[tokio::test]
+    async fn application_define_rejects_unknown_project() {
+        let store = Arc::new(crate::project_store::InMemoryProjectStore::new());
+        let r = runner_with_store(store.clone());
+        let pid = Uuid::from_u128(0x7011);
+        let mut t = task("application.define");
+        t.input = serde_json::json!({ "project_id": pid, "application": app_json(0xA1, "x") });
+        let err = r.run(&t, &auth(&["operator"])).await.unwrap_err();
+        assert!(matches!(err, AppError::Port(PortError::Downstream(_))));
+        assert!(
+            store.get(&ProjectId(pid)).await.unwrap().is_none(),
+            "unknown project not created implicitly"
+        );
     }
 
     #[tokio::test]

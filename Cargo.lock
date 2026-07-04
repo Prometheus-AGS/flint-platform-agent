@@ -708,6 +708,7 @@ dependencies = [
  "fpa-ports",
  "fpa-protocol",
  "jsonschema",
+ "serde",
  "serde_json",
  "thiserror",
  "tokio",
