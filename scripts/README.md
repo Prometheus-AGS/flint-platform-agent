@@ -21,12 +21,18 @@ COLIMA_MEM=10 COLIMA_CPUS=4 ./scripts/reset-colima.sh
 ```
 
 **What it does:** kills frozen docker/colima CLI calls → quits Docker Desktop and
-reaps its background processes → **`brew upgrade colima`** (stale builds have
-Apple-Silicon `vz` bugs — socket-provisioning + broken `restart`; current builds fix
-them) → `colima delete --force` (with a `limactl` hard-reset fallback) →
+reaps its background processes → reports the colima on PATH (does **not** upgrade it) →
+`colima delete --force` (with a `limactl` hard-reset fallback) →
 `colima start --vm-type vz --mount-type virtiofs --cpu … --memory … --disk …` →
 `docker context use colima` → waits for dockerd (15–45s) → verifies with `docker info`
 + `docker run --rm hello-world`.
+
+> **colima build:** this machine runs a **source-built** colima at
+> `/usr/local/bin/colima` (`v0.8.1-190-g466d247`, built from
+> `/Users/gqadonis/Projects/references/colima`) that fixes the Apple-Silicon `vz`
+> socket-provisioning + `restart` bugs the released build had. **Do not `brew upgrade
+> colima`** — it would clobber this binary with the older release. The script no
+> longer upgrades; it uses whatever `colima` is on PATH.
 
 **Runtime choice:** uses colima with the **`vz`** driver (Apple Virtualization.framework
 — fast, sub-second boots) because our make-or-break integration point is the Rust

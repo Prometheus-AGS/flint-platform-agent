@@ -60,21 +60,18 @@ if colima status --profile "$PROFILE" >/dev/null 2>&1; then
   limactl delete -f "colima${PROFILE:+-$PROFILE}" 2>/dev/null || limactl delete -f colima 2>/dev/null
 fi
 
-# ---- 3b. upgrade colima FIRST (stale builds have Apple-Silicon vz bugs) ------
-# A stale colima was observed to break vz docker-socket provisioning + `colima restart`.
-# Recent releases fix the Apple-Silicon vz issues, and vz is the FAST driver we want
-# (Virtualization.framework, sub-second boots) — so upgrade before recreating.
-# Skip with COLIMA_SKIP_UPGRADE=1.
-if [ "${COLIMA_SKIP_UPGRADE:-0}" != "1" ] && command -v brew >/dev/null 2>&1; then
-  say "Upgrading colima to a current build (brew) — fixes stale vz bugs"
-  brew upgrade colima 2>&1 | tail -3 || echo "  (already current or brew upgrade skipped)"
-  echo "  colima version: $(colima version 2>/dev/null | head -1)"
-fi
+# ---- 3b. confirm the colima build (must be current for vz) -------------------
+# This machine runs a SOURCE-BUILT colima installed at /usr/local/bin/colima
+# (e.g. v0.8.1-190-g466d247) that fixes the Apple-Silicon vz socket-provisioning +
+# restart bugs. Do NOT `brew upgrade` — that would clobber the purpose-built binary
+# with the older released one. Just report which colima we're about to use.
+say "Using colima on PATH (do NOT brew-upgrade a source build)"
+echo "  colima: $(command -v colima)  version: $(colima version 2>/dev/null | head -1)"
 
 # ---- 4. start a clean, large VM ---------------------------------------------
-# VM driver: vz (Apple Virtualization.framework) — the FAST path on Apple Silicon.
-# Requires a current colima (see step 3b). Override with COLIMA_VMTYPE=qemu only if a
-# vz regression resurfaces. virtiofs is the fast mount and is vz-only; qemu needs sshfs.
+# VM driver: vz (Apple Virtualization.framework) — the FAST path on Apple Silicon,
+# working on the current source build. Override with COLIMA_VMTYPE=qemu only if a vz
+# regression resurfaces. virtiofs is the fast mount and is vz-only; qemu needs sshfs.
 VMTYPE="${COLIMA_VMTYPE:-vz}"
 say "Starting a clean colima VM: ${CPUS} CPU / ${MEM} GiB / ${DISK} GiB (vm-type: ${VMTYPE})"
 COLIMA_START_ARGS=(--profile "$PROFILE" --cpu "$CPUS" --memory "$MEM" --disk "$DISK" --vm-type "$VMTYPE")
