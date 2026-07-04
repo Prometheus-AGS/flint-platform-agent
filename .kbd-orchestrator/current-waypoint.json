@@ -2,14 +2,14 @@
   "phase": "project-artifact-depth",
   "previousPhase": "live-smoke-and-durable-store",
   "change": null,
-  "status": "execute_complete",
-  "currentTask": "3/3 changes done + green (fpa-app 29/29, gateway 13+6); rust-reviewer APPROVE, 2 LOWs fixed. p1-p4 archived (2 partials skip-noted). Run reflect.",
+  "status": "reflect_complete",
+  "currentTask": "reflection written; all 3 goals MET, reviewer APPROVE, clean run. Seed next phase (recommend project-read-and-list, no-infra).",
   "nextPendingChange": null,
   "sourceTool": "unknown",
-  "exactNextCommand": "/kbd-reflect project-artifact-depth",
-  "recommendedNextPhase": null,
+  "exactNextCommand": "/kbd-next-phase",
+  "recommendedNextPhase": "project-read-and-list",
   "parentPhase": null,
   "childPhases": [],
   "childPointer": null,
-  "updatedAt": "2026-07-04T00:20:00Z"
+  "updatedAt": "2026-07-04T00:25:00Z"
 }

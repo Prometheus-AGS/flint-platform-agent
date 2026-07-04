@@ -8,7 +8,7 @@
   "spec_complete": true,
   "plan_complete": true,
   "execute_complete": true,
-  "reflect_complete": false,
+  "reflect_complete": true,
   "changes_total": 3,
   "changes_completed": 3,
   "completed_changes": [
