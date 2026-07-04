@@ -92,6 +92,16 @@ three. This is why **stubs are low-risk**: the surface to fake is 3 static GETs.
 
 ---
 
+## 4b. Operator decision (resolved at assess, 2026-07-04)
+
+**Smoke dependencies → HTTP stubs (first green milestone).** Provenance: **user**
+(AskUserQuestion). `compose.smoke.yml` = built `fpa-gateway` (:8088) + `postgres:17-alpine`
+(for the agent's `FPA_PROJECT_DB_URL`) + **one stub container** (wiremock) answering the
+3 GETs (`/openapi.json`, `/healthz`, `/routes`). Playwright drives `:8088`. **Real
+forge/gate/fabric are NOT in scope this phase** — a separate future phase, once/if the
+pgrx build story is sorted. This guarantees a green live-smoke without the sibling-build
+convergence risk. Smoke driver = **Playwright** (operator-named), HTTP scope.
+
 ## 5. Handoff to analyze/plan
 
 Docker is live and **goal #1 already passes** — the durable-store proof ran against a

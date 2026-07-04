@@ -2,14 +2,14 @@
   "phase": "live-smoke-and-durable-proof",
   "previousPhase": "project-read-and-list",
   "change": null,
-  "status": "assess_pending",
-  "currentTask": "phase seeded; Docker healthy (colima vz 6/12). Run assess: durable-Postgres proof + agent-container compose smoke.",
+  "status": "analyze_pending",
+  "currentTask": "assess done; goal-1 durable proof already PASSES live. Operator: HTTP stubs (not real siblings). Deps are stock images (rust/postgres/wiremock) -> analyze can --skip. Spec: Dockerfile + compose.smoke.yml + Playwright smoke + durable-proof runner.",
   "nextPendingChange": null,
   "sourceTool": "unknown",
-  "exactNextCommand": "/kbd-assess live-smoke-and-durable-proof",
+  "exactNextCommand": "/kbd-analyze live-smoke-and-durable-proof --skip \"stock images (rust/postgres/wiremock); durable proof already validated live; no external research\"",
   "recommendedNextPhase": null,
   "parentPhase": null,
   "childPhases": [],
   "childPointer": null,
-  "updatedAt": "2026-07-04T07:15:00Z"
+  "updatedAt": "2026-07-04T07:25:00Z"
 }
