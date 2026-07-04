@@ -1,15 +1,15 @@
 {
-  "phase": "project-artifact-depth",
-  "previousPhase": "live-smoke-and-durable-store",
+  "phase": "project-read-and-list",
+  "previousPhase": "project-artifact-depth",
   "change": null,
-  "status": "reflect_complete",
-  "currentTask": "reflection written; all 3 goals MET, reviewer APPROVE, clean run. Seed next phase (recommend project-read-and-list, no-infra).",
+  "status": "assess_pending",
+  "currentTask": "phase seeded from prior reflection (Option A, no-infra); run assess",
   "nextPendingChange": null,
   "sourceTool": "unknown",
-  "exactNextCommand": "/kbd-next-phase",
-  "recommendedNextPhase": "project-read-and-list",
+  "exactNextCommand": "/kbd-assess project-read-and-list",
+  "recommendedNextPhase": null,
   "parentPhase": null,
   "childPhases": [],
   "childPointer": null,
-  "updatedAt": "2026-07-04T00:25:00Z"
+  "updatedAt": "2026-07-04T00:30:00Z"
 }
