@@ -2,14 +2,14 @@
   "phase": "live-smoke-and-durable-proof",
   "previousPhase": "project-read-and-list",
   "change": null,
-  "status": "plan_pending",
-  "currentTask": "3 change specs written + validated (durable-proof runner, agent container+compose, Playwright smoke). Run plan.",
+  "status": "plan_complete",
+  "currentTask": "plan.md written; c001 runner -> c002 container+compose -> c003 smoke. Each verified by a real run. Run execute.",
   "nextPendingChange": "p9-c001-durable-proof-runner",
   "sourceTool": "unknown",
-  "exactNextCommand": "/kbd-plan live-smoke-and-durable-proof",
+  "exactNextCommand": "/kbd-execute live-smoke-and-durable-proof",
   "recommendedNextPhase": null,
   "parentPhase": null,
   "childPhases": [],
   "childPointer": null,
-  "updatedAt": "2026-07-04T07:36:00Z"
+  "updatedAt": "2026-07-04T07:40:00Z"
 }
