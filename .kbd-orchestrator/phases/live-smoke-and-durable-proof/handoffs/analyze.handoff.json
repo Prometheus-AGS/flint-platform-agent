@@ -1,0 +1,9 @@
+{
+  "stage": "analyze",
+  "completedAt": "2026-07-04T12:58:05Z",
+  "outputs": [],
+  "nextStage": "spec",
+  "summaryForNext": "skipped: stock images + live-validated durable proof; no external research",
+  "skipped": true,
+  "skipReason": "stock images + live-validated durable proof; no external research"
+}

@@ -1,0 +1,34 @@
+{
+  "phase": "live-smoke-and-durable-proof",
+  "generatedAt": "2026-07-04T07:28:00Z",
+  "mode": "skipped",
+  "researchTiersRun": [],
+  "researchSkipReason": "All deps are stock, already-pullable images (rust:1.93-slim-bookworm, debian:bookworm-slim, postgres:17-alpine, wiremock/wiremock:latest); the durable-store proof already PASSED against real Postgres live; fpa-gateway is a bin+lib crate that builds with -p. Nothing to research.",
+  "candidates": [],
+  "build_required": [
+    {
+      "gap_id": "G1",
+      "summary": "smoke/run-durable-proof.sh: export DOCKER_HOST + TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE from the colima context, run cargo test -p fpa-store-pg -- --ignored (already validated)",
+      "capability_gap_id": null,
+      "verdict": "build"
+    },
+    {
+      "gap_id": "G2",
+      "summary": "Dockerfile: multi-stage rust:1.93-slim-bookworm builder -> debian:bookworm-slim runtime; build+copy the fpa-gateway binary; run on 0.0.0.0:8088",
+      "capability_gap_id": null,
+      "verdict": "build"
+    },
+    {
+      "gap_id": "G3",
+      "summary": "compose.smoke.yml: built fpa-gateway (:8088) + postgres:17-alpine (FPA_PROJECT_DB_URL) + wiremock stub (3 GETs: /openapi.json, /healthz, /routes); required FPA_* env wired to the stub",
+      "capability_gap_id": null,
+      "verdict": "build"
+    },
+    {
+      "gap_id": "G4",
+      "summary": "Playwright HTTP smoke driving :8088 end-to-end (healthz, HS256-authed project.create/inspect/list, fabric.health, MCP tools/list+call, /agui auth gate) + a runner script/README",
+      "capability_gap_id": null,
+      "verdict": "build"
+    }
+  ]
+}

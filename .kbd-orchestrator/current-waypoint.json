@@ -2,14 +2,14 @@
   "phase": "live-smoke-and-durable-proof",
   "previousPhase": "project-read-and-list",
   "change": null,
-  "status": "analyze_pending",
-  "currentTask": "assess done; goal-1 durable proof already PASSES live. Operator: HTTP stubs (not real siblings). Deps are stock images (rust/postgres/wiremock) -> analyze can --skip. Spec: Dockerfile + compose.smoke.yml + Playwright smoke + durable-proof runner.",
+  "status": "spec_pending",
+  "currentTask": "analyze skipped (stock images, live-validated proof). Spec: durable-proof runner + Dockerfile + compose.smoke.yml + wiremock stub + Playwright smoke.",
   "nextPendingChange": null,
   "sourceTool": "unknown",
-  "exactNextCommand": "/kbd-analyze live-smoke-and-durable-proof --skip \"stock images (rust/postgres/wiremock); durable proof already validated live; no external research\"",
+  "exactNextCommand": "/kbd-spec live-smoke-and-durable-proof",
   "recommendedNextPhase": null,
   "parentPhase": null,
   "childPhases": [],
   "childPointer": null,
-  "updatedAt": "2026-07-04T07:25:00Z"
+  "updatedAt": "2026-07-04T07:30:00Z"
 }
