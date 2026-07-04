@@ -2,14 +2,14 @@
   "phase": "real-sibling-smoke",
   "previousPhase": "live-smoke-and-durable-proof",
   "change": null,
-  "status": "plan_pending",
-  "currentTask": "spec done: 6 REAL changes (operator override 'nothing but REAL' — fabric NOT stubbed). c001 real gate, c002 real forge (CI PG image + fdb-gateway Dockerfile), c003 real fabric, c004 NEW fpa-fabric WS subscribe client (reuse frf-agentproto::ContentBlock), c005 unified compose.real.yml + smoke incl. realtime event, c006 best-effort full pgrx PG-18 image. All openspec --strict valid. Next: order them.",
-  "nextPendingChange": "p10-c001-real-gate",
+  "status": "execute_pending",
+  "currentTask": "plan done: 6 REAL changes ordered by dependency — (1) c004 subscribe client [only new Rust, compile first], (2) c002 forge [author fdb-gateway Dockerfile — highest authoring risk], (3) c001 gate, (4) c003 fabric [heaviest boot], (5) c005 unified compose+realtime smoke [integration milestone], (6) c006 pgrx [best-effort opt-in]. G2 'stub fabric' from analyze is SUPERSEDED by operator's 'nothing but REAL'. Next: execute, first change c004.",
+  "nextPendingChange": "p10-c004-fabric-realtime-client",
   "sourceTool": "unknown",
-  "exactNextCommand": "/kbd-plan real-sibling-smoke",
+  "exactNextCommand": "/kbd-execute real-sibling-smoke",
   "recommendedNextPhase": null,
   "parentPhase": null,
   "childPhases": [],
   "childPointer": null,
-  "updatedAt": "2026-07-04T16:20:00Z"
+  "updatedAt": "2026-07-04T16:35:00Z"
 }

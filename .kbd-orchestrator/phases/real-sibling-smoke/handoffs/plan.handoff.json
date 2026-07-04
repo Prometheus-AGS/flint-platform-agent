@@ -1,0 +1,11 @@
+{
+  "stage": "plan",
+  "completedAt": "2026-07-04T16:28:00Z",
+  "outputs": [
+    "plan.md"
+  ],
+  "nextStage": "execute",
+  "summaryForNext": "6 REAL changes ordered by dependency: (1) c004 subscribe client [only new Rust — compile first, protect the cargo-test budget], (2) c002 forge [author fdb-gateway Dockerfile — highest authoring risk, no Dockerfile exists], (3) c001 gate [reuse sibling recipe], (4) c003 fabric [heaviest boot, 6 svcs + CDC], (5) c005 unified compose.real.yml + realtime smoke [THE integration milestone], (6) c006 pgrx [best-effort opt-in, off the green path]. Analyze's G2 'stub fabric' is SUPERSEDED by the operator's 'nothing but REAL' override — recorded in plan.md. First change to apply: p10-c004.",
+  "skipped": false,
+  "skipReason": null
+}
