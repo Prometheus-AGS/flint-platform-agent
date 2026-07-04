@@ -36,6 +36,10 @@ impl ProjectStore for InMemoryProjectStore {
     async fn get(&self, id: &ProjectId) -> Result<Option<Project>, PortError> {
         Ok(self.projects.read().await.get(id).cloned())
     }
+
+    async fn list(&self) -> Result<Vec<Project>, PortError> {
+        Ok(self.projects.read().await.values().cloned().collect())
+    }
 }
 
 #[cfg(test)]

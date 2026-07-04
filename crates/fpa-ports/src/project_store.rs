@@ -25,4 +25,8 @@ pub trait ProjectStore: Send + Sync {
 
     /// Fetch the project with `id`, or `Ok(None)` if none is stored.
     async fn get(&self, id: &ProjectId) -> Result<Option<Project>, PortError>;
+
+    /// Return every stored project aggregate. An empty store yields `Ok(vec![])`.
+    /// Ordering is unspecified at the port; callers that need determinism sort.
+    async fn list(&self) -> Result<Vec<Project>, PortError>;
 }

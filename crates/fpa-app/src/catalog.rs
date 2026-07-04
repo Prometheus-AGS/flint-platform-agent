@@ -79,14 +79,14 @@ pub const CATALOG: &[CatalogEntry] = &[
     },
     CatalogEntry {
         kind: "project.inspect",
-        target: TargetPort::Forge,
+        target: TargetPort::Store,
         required_role: "viewer",
         description: "Inspect a project's definition.",
         input_schema_json: SCHEMA_PROJECT_ID,
     },
     CatalogEntry {
         kind: "project.list",
-        target: TargetPort::Forge,
+        target: TargetPort::Store,
         required_role: "viewer",
         description: "List projects visible to the operator.",
         input_schema_json: SCHEMA_EMPTY,

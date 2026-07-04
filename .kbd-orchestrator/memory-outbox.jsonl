@@ -3,3 +3,4 @@
 {"queuedAt":"2026-07-03T20:04:24Z","method":"create_task_stream","arguments":{"name":"kbd:prometheus-skill-pack:live-smoke-and-durable-store"}}
 {"queuedAt":"2026-07-03T20:40:21Z","method":"add_memory","arguments":{"content":"Phase live-smoke-and-durable-store reflection learnings:","user_id":"prometheus-skill-pack"}}
 {"queuedAt":"2026-07-03T22:20:31Z","method":"create_task_stream","arguments":{"name":"kbd:prometheus-skill-pack:project-artifact-depth"}}
+{"queuedAt":"2026-07-04T10:11:01Z","method":"create_task_stream","arguments":{"name":"kbd:prometheus-skill-pack:project-read-and-list"}}

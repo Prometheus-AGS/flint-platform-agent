@@ -149,11 +149,10 @@ impl TaskRunner {
         bearer: Option<&str>,
     ) -> Result<serde_json::Value, fpa_ports::PortError> {
         match kind {
-            // Reads
-            "forge.table.describe" | "project.inspect" => {
-                self.forge.describe_table("<unspecified>", bearer).await
-            }
-            "forge.table.list" | "project.list" => self.forge.list_tables(bearer).await,
+            // Reads — genuine forge metadata. `project.inspect`/`project.list` are
+            // NOT here: they read the agent-owned store (p8-c001, `dispatch_store`).
+            "forge.table.describe" => self.forge.describe_table("<unspecified>", bearer).await,
+            "forge.table.list" => self.forge.list_tables(bearer).await,
             // Any other forge kind that is write-oriented has no mapping yet.
             other => Err(fpa_ports::PortError::Downstream(format!(
                 "write API pending: forge kind '{other}' not implemented"
@@ -171,10 +170,44 @@ impl TaskRunner {
         match kind {
             "project.create" => self.create_project(input).await,
             "application.define" => self.define_application(input).await,
+            "project.inspect" => self.inspect_project(input).await,
+            "project.list" => self.list_projects().await,
             other => Err(fpa_ports::PortError::Downstream(format!(
                 "store kind '{other}' not implemented"
             ))),
         }
+    }
+
+    /// Read a single project aggregate from the store by `project_id` (p8-c001).
+    /// Unknown id → clean error; performs no forge call.
+    async fn inspect_project(
+        &self,
+        input: &serde_json::Value,
+    ) -> Result<serde_json::Value, fpa_ports::PortError> {
+        let id = input
+            .get("project_id")
+            .and_then(serde_json::Value::as_str)
+            .ok_or_else(|| {
+                fpa_ports::PortError::Downstream("project.inspect requires 'project_id'".to_owned())
+            })
+            .and_then(|s| {
+                Uuid::parse_str(s).map(ProjectId).map_err(|e| {
+                    fpa_ports::PortError::Downstream(format!("invalid project_id: {e}"))
+                })
+            })?;
+        let project = self.projects.get(&id).await?.ok_or_else(|| {
+            fpa_ports::PortError::Downstream(format!("unknown project '{}'", id.0))
+        })?;
+        serde_json::to_value(&project).map_err(|e| fpa_ports::PortError::Decode(e.to_string()))
+    }
+
+    /// List all stored projects (p8-c001), deterministically ordered by id
+    /// (Base Rule 35). Performs no forge call.
+    async fn list_projects(&self) -> Result<serde_json::Value, fpa_ports::PortError> {
+        let mut projects = self.projects.list().await?;
+        projects.sort_by_key(|p| p.id.0);
+        serde_json::to_value(serde_json::json!({ "projects": projects }))
+            .map_err(|e| fpa_ports::PortError::Decode(e.to_string()))
     }
 
     /// Persist a new `Project` aggregate to the agent-owned store (p7-c001).
@@ -408,6 +441,21 @@ mod tests {
         )
     }
 
+    /// A runner sharing both the forge fake (to assert no-forge-call on store reads)
+    /// and the store.
+    fn runner_with_gate_forge_store(
+        forge: Arc<FakeForge>,
+        store: Arc<crate::project_store::InMemoryProjectStore>,
+    ) -> TaskRunner {
+        TaskRunner::new(
+            forge,
+            Arc::new(FakeFabric),
+            Arc::new(FakeGate::default()),
+            Arc::new(FakeMcp),
+            store,
+        )
+    }
+
     fn task(kind: &str) -> AdminTask {
         AdminTask {
             id: TaskId(Uuid::nil()),
@@ -630,6 +678,75 @@ mod tests {
         );
     }
 
+    // ---- p8-c001: store-backed reads ----
+
+    #[tokio::test]
+    async fn project_inspect_reads_from_store_without_forge() {
+        let store = Arc::new(crate::project_store::InMemoryProjectStore::new());
+        let forge = Arc::new(FakeForge::default());
+        let r = runner_with_gate_forge_store(forge.clone(), store.clone());
+        let pid = Uuid::from_u128(0x8001);
+        seed_project(&r, pid).await;
+
+        let mut t = task("project.inspect");
+        t.input = serde_json::json!({ "project_id": pid });
+        let out = r.run(&t, &auth(&["viewer"])).await.expect("inspect");
+        assert_eq!(out["name"], "host");
+        assert!(
+            !forge.called.load(Ordering::SeqCst),
+            "project.inspect must not call forge"
+        );
+    }
+
+    #[tokio::test]
+    async fn project_inspect_unknown_is_error() {
+        let r = runner_with_store(Arc::new(crate::project_store::InMemoryProjectStore::new()));
+        let mut t = task("project.inspect");
+        t.input = serde_json::json!({ "project_id": Uuid::from_u128(0x8002) });
+        let err = r.run(&t, &auth(&["viewer"])).await.unwrap_err();
+        assert!(matches!(err, AppError::Port(PortError::Downstream(_))));
+    }
+
+    #[tokio::test]
+    async fn project_list_returns_all_sorted_without_forge() {
+        let store = Arc::new(crate::project_store::InMemoryProjectStore::new());
+        let forge = Arc::new(FakeForge::default());
+        let r = runner_with_gate_forge_store(forge.clone(), store.clone());
+        // Seed two projects with ids that would sort b-then-a if unsorted.
+        seed_project(&r, Uuid::from_u128(0x8020)).await;
+        seed_project(&r, Uuid::from_u128(0x8010)).await;
+
+        let out = r
+            .run(&task("project.list"), &auth(&["viewer"]))
+            .await
+            .expect("list");
+        let projects = out["projects"].as_array().expect("array");
+        assert_eq!(projects.len(), 2);
+        // Deterministic order by id (Base Rule 35).
+        assert_eq!(
+            projects[0]["id"],
+            serde_json::json!(Uuid::from_u128(0x8010))
+        );
+        assert_eq!(
+            projects[1]["id"],
+            serde_json::json!(Uuid::from_u128(0x8020))
+        );
+        assert!(
+            !forge.called.load(Ordering::SeqCst),
+            "project.list must not call forge"
+        );
+    }
+
+    #[tokio::test]
+    async fn project_list_empty_store_is_empty_list() {
+        let r = runner_with_store(Arc::new(crate::project_store::InMemoryProjectStore::new()));
+        let out = r
+            .run(&task("project.list"), &auth(&["viewer"]))
+            .await
+            .expect("list");
+        assert_eq!(out["projects"].as_array().expect("array").len(), 0);
+    }
+
     #[tokio::test]
     async fn permission_denied_never_calls_port() {
         let forge = Arc::new(FakeForge::default());
@@ -688,7 +805,12 @@ mod tests {
         // p7 (rust-review LOW): guard against a future TargetPort::Store kind being
         // catalogued without a `dispatch_store` arm — it would hit the clean catch-all
         // ("store kind not implemented") rather than its intended handler.
-        const STORE_KINDS: &[&str] = &["project.create", "application.define"];
+        const STORE_KINDS: &[&str] = &[
+            "project.create",
+            "application.define",
+            "project.inspect",
+            "project.list",
+        ];
         for entry in catalog::CATALOG
             .iter()
             .filter(|e| e.target == TargetPort::Store)

@@ -128,6 +128,25 @@ impl ProjectStore for PgProjectStore {
             }
         }
     }
+
+    async fn list(&self) -> Result<Vec<Project>, PortError> {
+        let client = self
+            .pool
+            .get()
+            .await
+            .map_err(|e| PortError::Transport(format!("pg pool get: {e}")))?;
+        let rows = client
+            .query("SELECT body FROM fpa_projects", &[])
+            .await
+            .map_err(|e| PortError::Downstream(format!("project list: {e}")))?;
+        rows.into_iter()
+            .map(|row| {
+                let body: serde_json::Value = row.get(0);
+                serde_json::from_value(body)
+                    .map_err(|e| PortError::Decode(format!("deserialize project: {e}")))
+            })
+            .collect()
+    }
 }
 
 #[cfg(test)]
@@ -184,6 +203,10 @@ mod tests {
             let store = PgProjectStore::connect(&url).await.expect("connect 2");
             let got = store.get(&id).await.expect("get").expect("present");
             assert_eq!(got, project);
+            // p8-c001: `list()` returns the stored aggregate too.
+            let all = store.list().await.expect("list");
+            assert_eq!(all.len(), 1);
+            assert_eq!(all[0], project);
         }
     }
 }
