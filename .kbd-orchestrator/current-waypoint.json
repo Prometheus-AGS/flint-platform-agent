@@ -2,14 +2,14 @@
   "phase": "project-read-and-list",
   "previousPhase": "project-artifact-depth",
   "change": null,
-  "status": "spec_pending",
-  "currentTask": "analyze skipped (in-house). Spec from assessment + leans: retarget inspect/list to Store, ProjectStore::list() on port+both adapters, p6 archival.",
-  "nextPendingChange": null,
+  "status": "plan_pending",
+  "currentTask": "2 change specs written + validated (p8-c001 store reads + list(), p8-c002 archive p6). Run plan.",
+  "nextPendingChange": "p8-c001-project-store-reads",
   "sourceTool": "unknown",
-  "exactNextCommand": "/kbd-spec project-read-and-list",
+  "exactNextCommand": "/kbd-plan project-read-and-list",
   "recommendedNextPhase": null,
   "parentPhase": null,
   "childPhases": [],
   "childPointer": null,
-  "updatedAt": "2026-07-04T00:39:00Z"
+  "updatedAt": "2026-07-04T00:44:00Z"
 }
