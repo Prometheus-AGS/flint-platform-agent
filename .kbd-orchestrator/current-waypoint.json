@@ -2,14 +2,14 @@
   "phase": "live-smoke-and-durable-proof",
   "previousPhase": "project-read-and-list",
   "change": null,
-  "status": "plan_complete",
-  "currentTask": "plan.md written; c001 runner -> c002 container+compose -> c003 smoke. Each verified by a real run. Run execute.",
+  "status": "reflect_complete",
+  "currentTask": "LIVE SMOKE GREEN \u2014 agent proven real (durable PG + containerized :8088 + 6/6 smoke). Next phase is operator A/B: real-sibling-smoke vs smoke-in-ci-and-crud-completion.",
   "nextPendingChange": "p9-c001-durable-proof-runner",
   "sourceTool": "unknown",
-  "exactNextCommand": "/kbd-execute live-smoke-and-durable-proof",
-  "recommendedNextPhase": null,
+  "exactNextCommand": "/kbd-next-phase",
+  "recommendedNextPhase": "real-sibling-smoke",
   "parentPhase": null,
   "childPhases": [],
   "childPointer": null,
-  "updatedAt": "2026-07-04T07:40:00Z"
+  "updatedAt": "2026-07-04T15:25:00Z"
 }
