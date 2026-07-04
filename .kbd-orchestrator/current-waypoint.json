@@ -1,15 +1,15 @@
 {
-  "phase": "project-read-and-list",
-  "previousPhase": "project-artifact-depth",
+  "phase": "live-smoke-and-durable-proof",
+  "previousPhase": "project-read-and-list",
   "change": null,
-  "status": "reflect_complete",
-  "currentTask": "reflection written; all goals MET, reviewer APPROVE, cleanest execute. Next phase is an operator A/B decision: live-smoke-and-durable-proof (infra-gated, higher value) vs a no-infra CRUD-completion step.",
+  "status": "assess_pending",
+  "currentTask": "phase seeded; Docker healthy (colima vz 6/12). Run assess: durable-Postgres proof + agent-container compose smoke.",
   "nextPendingChange": null,
   "sourceTool": "unknown",
-  "exactNextCommand": "/kbd-next-phase",
-  "recommendedNextPhase": "live-smoke-and-durable-proof",
+  "exactNextCommand": "/kbd-assess live-smoke-and-durable-proof",
+  "recommendedNextPhase": null,
   "parentPhase": null,
   "childPhases": [],
   "childPointer": null,
-  "updatedAt": "2026-07-04T01:10:00Z"
+  "updatedAt": "2026-07-04T07:15:00Z"
 }
