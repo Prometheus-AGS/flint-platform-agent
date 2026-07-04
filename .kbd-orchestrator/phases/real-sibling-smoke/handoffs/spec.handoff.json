@@ -1,0 +1,11 @@
+{
+  "stage": "spec",
+  "completedAt": "2026-07-04T16:20:53Z",
+  "outputs": [
+    "openspec/changes/p10-c001-real-gate/proposal.md"
+  ],
+  "nextStage": "plan",
+  "summaryForNext": "6 REAL changes (operator override: fabric NOT stubbed). c001 gate, c002 forge (CI PG + fdb-gateway Dockerfile), c003 fabric, c004 NEW fpa-fabric WS subscribe client reusing frf-agentproto::ContentBlock, c005 unified compose.real.yml + smoke incl. realtime event, c006 best-effort full pgrx PG-18. All openspec --strict valid. zeespec: n/a.",
+  "skipped": false,
+  "skipReason": null
+}

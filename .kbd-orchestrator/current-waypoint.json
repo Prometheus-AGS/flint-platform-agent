@@ -2,14 +2,14 @@
   "phase": "real-sibling-smoke",
   "previousPhase": "live-smoke-and-durable-proof",
   "change": null,
-  "status": "spec_pending",
-  "currentTask": "analyze done (sibling recipes verified). forge CI image lighter than feared (pg_graphql .deb); fdb-gateway builds w/o DB (runtime sqlx). Rec: real gate+forge, STUB fabric. Spec the changes.",
-  "nextPendingChange": null,
+  "status": "plan_pending",
+  "currentTask": "spec done: 6 REAL changes (operator override 'nothing but REAL' — fabric NOT stubbed). c001 real gate, c002 real forge (CI PG image + fdb-gateway Dockerfile), c003 real fabric, c004 NEW fpa-fabric WS subscribe client (reuse frf-agentproto::ContentBlock), c005 unified compose.real.yml + smoke incl. realtime event, c006 best-effort full pgrx PG-18 image. All openspec --strict valid. Next: order them.",
+  "nextPendingChange": "p10-c001-real-gate",
   "sourceTool": "unknown",
-  "exactNextCommand": "/kbd-spec real-sibling-smoke",
+  "exactNextCommand": "/kbd-plan real-sibling-smoke",
   "recommendedNextPhase": null,
   "parentPhase": null,
   "childPhases": [],
   "childPointer": null,
-  "updatedAt": "2026-07-04T15:52:00Z"
+  "updatedAt": "2026-07-04T16:20:00Z"
 }
