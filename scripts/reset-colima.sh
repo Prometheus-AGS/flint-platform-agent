@@ -61,14 +61,21 @@ if colima status --profile "$PROFILE" >/dev/null 2>&1; then
 fi
 
 # ---- 4. start a clean, large VM ---------------------------------------------
-say "Starting a clean colima VM: ${CPUS} CPU / ${MEM} GiB / ${DISK} GiB (vz + virtiofs)"
-colima start \
-  --profile "$PROFILE" \
-  --cpu "$CPUS" \
-  --memory "$MEM" \
-  --disk "$DISK" \
-  --vm-type vz \
-  --mount-type virtiofs \
+# VM driver: default (qemu). The experimental `vz` driver was observed to leave the
+# guest user without working docker-socket permissions (in-VM `permission denied on
+# /var/run/docker.sock`) AND to break `colima restart` ("cannot restart, VM not
+# previously started"). qemu provisions the docker group reliably. Set
+# COLIMA_VMTYPE=vz to opt back in if a future colima fixes it.
+VMTYPE="${COLIMA_VMTYPE:-qemu}"
+say "Starting a clean colima VM: ${CPUS} CPU / ${MEM} GiB / ${DISK} GiB (vm-type: ${VMTYPE})"
+COLIMA_START_ARGS=(--profile "$PROFILE" --cpu "$CPUS" --memory "$MEM" --disk "$DISK" --vm-type "$VMTYPE")
+# virtiofs only works with vz; qemu uses sshfs. Pick the compatible mount type.
+if [ "$VMTYPE" = "vz" ]; then
+  COLIMA_START_ARGS+=(--mount-type virtiofs)
+else
+  COLIMA_START_ARGS+=(--mount-type sshfs)
+fi
+colima start "${COLIMA_START_ARGS[@]}" \
   || die "colima start failed — check 'colima start --help' and host resources"
 
 # ---- 5. point the docker CLI at colima --------------------------------------
@@ -78,16 +85,22 @@ docker context use "$CTX" 2>/dev/null && echo "  docker context = $CTX" || warn 
 unset DOCKER_HOST 2>/dev/null || true   # a stale DOCKER_HOST env would override the context
 
 # ---- 6. verify the daemon actually serves (go/no-go) -------------------------
-say "Verifying the daemon serves"
-if timeout 30 docker info --format 'READY cpus={{.NCPU}} mem={{.MemTotal}}' 2>/dev/null; then
-  echo
-  say "Smoke: docker run --rm hello-world"
-  if timeout 90 docker run --rm hello-world 2>&1 | grep -qi 'Hello from Docker'; then
-    printf '\n\033[1;32m✔ Docker is healthy on colima. You are unblocked.\033[0m\n'
-    docker info --format '  cpus={{.NCPU}} mem_bytes={{.MemTotal}} context='"$CTX"
-  else
-    die "hello-world did not run — daemon reachable but containers fail; check 'docker logs' / colima memory"
-  fi
+say "Verifying the daemon serves (dockerd can take 15-45s after boot)"
+SERVING=""
+for i in $(seq 1 10); do
+  out=$(timeout 10 docker info --format 'cpus={{.NCPU}} mem={{.MemTotal}}' 2>/dev/null)
+  if [ -n "$out" ] && [ "$out" != "cpus=0 mem=0" ]; then SERVING="$out"; break; fi
+  echo "  waiting for dockerd (attempt $i/10): ${out:-<no response>}"
+  sleep 6
+done
+
+[ -n "$SERVING" ] || die "docker daemon not serving after boot (EOF/cpus=0). If you used vz, re-run with the default driver: COLIMA_VMTYPE=qemu $0"
+echo "  daemon serving: $SERVING"
+
+say "Smoke: docker run --rm hello-world"
+if timeout 120 docker run --rm hello-world 2>&1 | grep -qi 'Hello from Docker'; then
+  printf '\n\033[1;32m✔ Docker is healthy on colima. You are unblocked.\033[0m\n'
+  docker info --format '  cpus={{.NCPU}} mem_bytes={{.MemTotal}} context='"$CTX"
 else
-  die "docker daemon still not serving (EOF/timeout). Try: colima delete --force && re-run this script; or increase --memory."
+  die "hello-world did not run — daemon reachable but containers fail (in-VM socket perms?). Check: colima ssh -- docker info"
 fi
