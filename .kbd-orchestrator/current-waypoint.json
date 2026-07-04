@@ -2,14 +2,14 @@
   "phase": "real-sibling-smoke",
   "previousPhase": "live-smoke-and-durable-proof",
   "change": null,
-  "status": "assess_pending",
-  "currentTask": "phase seeded (Option A, operator). Risk-ordered: real gate+fabric first, forge pgrx a stretch. Run assess.",
+  "status": "analyze_pending",
+  "currentTask": "assess done + forge re-synced. Operator: CI-tier forge smoke (core) + full pgrx image (best-effort change). Analyze: verify gate/fabric/forge-CI build recipes, fdb-gateway Dockerfile approach, migrate step, versions.",
   "nextPendingChange": null,
   "sourceTool": "unknown",
-  "exactNextCommand": "/kbd-assess real-sibling-smoke",
+  "exactNextCommand": "/kbd-analyze real-sibling-smoke",
   "recommendedNextPhase": null,
   "parentPhase": null,
   "childPhases": [],
   "childPointer": null,
-  "updatedAt": "2026-07-04T15:30:00Z"
+  "updatedAt": "2026-07-04T15:42:00Z"
 }
