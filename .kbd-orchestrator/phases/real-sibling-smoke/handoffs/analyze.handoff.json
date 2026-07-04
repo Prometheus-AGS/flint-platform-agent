@@ -1,0 +1,12 @@
+{
+  "stage": "analyze",
+  "completedAt": "2026-07-04T15:59:22Z",
+  "outputs": [
+    "analysis.md",
+    "library-candidates.json"
+  ],
+  "nextStage": "spec",
+  "summaryForNext": "6 build_required gaps (reuse sibling recipes + author fdb-gateway Dockerfile); forge CI image lighter than feared (pg_graphql .deb), fdb-gateway builds w/o DB; recommend real gate+forge, stub fabric; full pgrx = best-effort. Open: real fabric vs stub.",
+  "skipped": false,
+  "skipReason": null
+}

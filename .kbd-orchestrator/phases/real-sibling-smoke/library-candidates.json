@@ -1,0 +1,46 @@
+{
+  "phase": "real-sibling-smoke",
+  "generatedAt": "2026-07-04T15:50:00Z",
+  "mode": "stack-specified",
+  "researchTiersRun": ["internal-sibling-source"],
+  "researchSkipReason": "No external library/framework to adopt — everything is a sibling artifact (gate/forge Dockerfiles+compose) or a thin authored Dockerfile. Verified build recipes from sibling source instead.",
+  "candidates": [],
+  "build_required": [
+    {
+      "gap_id": "G1",
+      "summary": "Real gate in the smoke: reuse flint-gate Dockerfile + its compose services (gate :4457 admin + postgres:16 + kratos); wire FPA_GATE_ADMIN_URL -> gate admin",
+      "capability_gap_id": null,
+      "verdict": "build"
+    },
+    {
+      "gap_id": "G2",
+      "summary": "fabric: recommend STUB /healthz (gateway hard-depends on iggy+keto+surreal -> real fabric = full 6-svc compose for one health check). Operator confirms real-vs-stub at spec",
+      "capability_gap_id": null,
+      "verdict": "build"
+    },
+    {
+      "gap_id": "G3",
+      "summary": "Real forge: reuse forge CI PG image (docker/postgres/Dockerfile — pg_graphql .deb + pgvector); apply migrations via `sqlx migrate run --source migrations`",
+      "capability_gap_id": null,
+      "verdict": "build"
+    },
+    {
+      "gap_id": "G4",
+      "summary": "Author fdb-gateway Dockerfile (none exists) — thin multi-stage rust build (runtime sqlx, no DB-at-build; exclude .cargo, add libssl-dev); reads DATABASE_URL at runtime, serves /openapi.json + /graphql; wire FPA_FORGE_URL -> it",
+      "capability_gap_id": null,
+      "verdict": "build"
+    },
+    {
+      "gap_id": "G5",
+      "summary": "compose.real.yml (real gate + real forge PG + fdb-gateway + migrate one-shot + fabric stub) + run-real.sh; keep stub run.sh",
+      "capability_gap_id": null,
+      "verdict": "build"
+    },
+    {
+      "gap_id": "G6",
+      "summary": "Best-effort: build the full pgrx image (images/postgres18/Dockerfile — flint_llm/pg_net/pg_cron); time-boxed; converges -> proven for forge, stalls -> documented, smoke unaffected",
+      "capability_gap_id": null,
+      "verdict": "build"
+    }
+  ]
+}
