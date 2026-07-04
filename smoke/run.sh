@@ -40,8 +40,9 @@ done
 [ -n "$ok" ] || { docker compose -f "$COMPOSE" logs agent | tail -30; die "agent never became healthy on :8088"; }
 
 say "Installing Playwright smoke deps (smoke/)"
-( cd "$HERE" && npm install --silent && npx playwright install chromium --with-deps >/dev/null 2>&1 || npm install --silent ) \
-  || die "npm install failed"
+# HTTP-only smoke (Playwright `request` API) — NO browser needed, so we do NOT run
+# `playwright install` (that download is slow and pointless here).
+( cd "$HERE" && npm install --silent ) || die "npm install failed"
 
 say "Running the Playwright smoke against the live agent"
 if ( cd "$HERE" && npm test ); then

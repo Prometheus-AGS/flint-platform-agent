@@ -1,0 +1,6 @@
+# Playwright/npm — never commit installed deps or test artifacts
+node_modules/
+package-lock.json
+test-results/
+playwright-report/
+.playwright/
