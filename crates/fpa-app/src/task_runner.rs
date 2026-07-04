@@ -384,6 +384,14 @@ mod tests {
         async fn health(&self) -> Result<(), PortError> {
             Ok(())
         }
+        async fn subscribe(
+            &self,
+            _channel: uuid::Uuid,
+            _bearer: Option<&str>,
+        ) -> Result<fpa_ports::EventStream, PortError> {
+            let empty = futures::stream::empty::<Result<fpa_ports::EventEnvelope, PortError>>();
+            Ok(Box::pin(empty))
+        }
     }
     #[derive(Default)]
     struct FakeGate {

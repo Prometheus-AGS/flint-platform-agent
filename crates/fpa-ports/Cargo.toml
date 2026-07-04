@@ -11,6 +11,10 @@ fpa-domain.workspace = true
 async-trait.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
+# Realtime fabric subscribe: the port streams the fabric's real EventEnvelope.
+frf-domain.workspace = true
+uuid.workspace = true
+futures.workspace = true
 
 [lints]
 workspace = true

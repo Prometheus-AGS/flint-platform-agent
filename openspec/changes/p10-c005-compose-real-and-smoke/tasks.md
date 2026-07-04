@@ -13,7 +13,7 @@
 ## 3. Real smoke incl. realtime event
 
 - [ ] 3.1 `smoke/smoke.real.spec.ts`: the p9 HTTP hops (auth, project CRUD, `fabric.health`, gate/forge reads) against the REAL stack; fix any wire drift found.
-- [ ] 3.2 Realtime test: agent subscribes (c004 client) → drive a change (forge DB write that CDC picks up, or fabric `dev` fan-out trigger — decide at execute) → assert the agent receives the corresponding `ContentBlock` change event within a timeout.
+- [ ] 3.2 Realtime test: agent subscribes (c004 client) → drive a change (forge DB write that CDC picks up, or fabric `dev` fan-out trigger — decide at execute) → assert the agent receives the corresponding `EventEnvelope` change event within a timeout.
 
 ## 4. Verification (integration milestone — counts toward the ≤3 test budget)
 

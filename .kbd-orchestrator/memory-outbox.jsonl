@@ -5,3 +5,4 @@
 {"queuedAt":"2026-07-03T22:20:31Z","method":"create_task_stream","arguments":{"name":"kbd:prometheus-skill-pack:project-artifact-depth"}}
 {"queuedAt":"2026-07-04T10:11:01Z","method":"create_task_stream","arguments":{"name":"kbd:prometheus-skill-pack:project-read-and-list"}}
 {"queuedAt":"2026-07-04T14:04:31Z","method":"create_task_stream","arguments":{"name":"kbd:prometheus-skill-pack:live-smoke-and-durable-proof"}}
+{"queuedAt":"2026-07-04T16:28:47Z","method":"create_task_stream","arguments":{"name":"kbd:prometheus-skill-pack:real-sibling-smoke"}}

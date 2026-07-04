@@ -20,6 +20,8 @@ tokio = { workspace = true }
 uuid = { workspace = true }
 
 [dev-dependencies]
+# Empty EventStream for the FakeFabric test double (FabricClient::subscribe).
+futures.workspace = true
 
 [lints]
 workspace = true

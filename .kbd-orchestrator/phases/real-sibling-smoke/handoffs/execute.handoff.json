@@ -1,0 +1,12 @@
+{
+  "stage": "execute",
+  "completedAt": "2026-07-04T17:49:18Z",
+  "outputs": [
+    "execution.md",
+    "progress.json"
+  ],
+  "nextStage": "reflect",
+  "summaryForNext": "backend=openspec. c004 fabric-realtime-client DONE + proven: FabricClient::subscribe over /ws/v1/subscribe yielding frf-domain::EventEnvelope (real wire type — corrected from ContentBlock at grounding), tokio-tungstenite 0.29 client in fpa-fabric, frf-domain path dep. cargo check+clippy(-D warnings)+fmt green; 6/6 fpa-fabric unit tests pass incl. a live fake-WS decode round-trip. 1/6 changes done. Next pending: c002 real-forge (author fdb-gateway Dockerfile).",
+  "skipped": false,
+  "skipReason": null
+}

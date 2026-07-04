@@ -9,15 +9,20 @@ biggest (and only new-agent-code) change in the phase.
 
 ## What Changes
 
-- **Reuse `frf-agentproto` (do NOT reinvent — Base Rule 12 / "Shared Agent-Protocol
-  Contract"):** add a dependency on `../flint-realtime-fabric/crates/frf-agentproto`
-  for its `ContentBlock` (`#[serde(tag="type")]`, `TextDelta`/`StateSnapshot`/
-  `ChangeEvent`/… `#[serde(other)] Unknown`).
-- **New port method:** `FabricClient::subscribe(spec) -> BoxStream<ContentBlock>` in
-  `fpa-ports` (async-trait; a stream of agent-proto content blocks).
-- **WS client adapter** in `fpa-fabric`: connect to `{fabric}/ws/v1/subscribe` (the
-  fabric gateway's WebSocket), forward the auth bearer, deserialize each frame into
-  `ContentBlock`, surface as a `BoxStream`. Maps transport/close to `PortError`.
+- **Reuse `frf-domain::EventEnvelope` (do NOT reinvent — Base Rule 12 / "Shared
+  Agent-Protocol Contract"):** add a dependency on
+  `../flint-realtime-fabric/crates/frf-domain` for `EventEnvelope` / `EventKind` /
+  `Channel`. This is the **real wire type** of `/ws/v1/subscribe` — verified against
+  `frf-gateway/src/routes/subscribe.rs`, which serializes `EventEnvelope` JSON frames.
+  (An earlier draft named `frf-agentproto::ContentBlock`; that is the type for the
+  *separate* `/ws/v1/agents` bus, and its crate drags in prost/tonic. Corrected per
+  Base Rule 10; see the c004 spec's grounding note.)
+- **New port method:** `FabricClient::subscribe(channel, bearer) ->
+  BoxStream<EventEnvelope>` in `fpa-ports` (async-trait; a stream of fabric envelopes).
+- **WS client adapter** in `fpa-fabric`: connect to
+  `ws://{endpoint}/ws/v1/subscribe?channel=<UUID>` with `Authorization: Bearer`,
+  deserialize each text frame into `EventEnvelope`, surface as a `BoxStream`. Maps
+  transport/close/decode to `PortError`.
 - The `health()` path is unchanged. No gateway-surface change on the agent (this is a
   client the agent *uses*, not a new inbound route) — though a later phase may bridge
   fabric change-events into the agent's AG-UI stream.
@@ -25,21 +30,20 @@ biggest (and only new-agent-code) change in the phase.
 ## Capabilities
 
 ### New Capabilities
-- `fabric-realtime-client`: The agent can subscribe to fabric's real CDC change stream (`/ws/v1/subscribe`) and receive `frf-agentproto::ContentBlock` events — enabling the write→CDC→agent-receives-event smoke.
+- `fabric-realtime-client`: The agent can subscribe to fabric's real CDC change stream (`/ws/v1/subscribe`) and receive `frf-domain::EventEnvelope` events — enabling the write→CDC→agent-receives-event smoke.
 
 ## Impact
 
-- `fpa-ports` (new `subscribe` on `FabricClient`), `fpa-fabric` (WS client adapter +
-  `frf-agentproto` dep + a WS dep — `tokio-tungstenite`, verify current version).
-  `fpa-gateway` composition unaffected (same adapter, new method). New deps: verify
-  `tokio-tungstenite` version (Base Rule 22) + the `frf-agentproto` path dep.
+- `fpa-ports` (new `subscribe` on `FabricClient` + `frf-domain` re-export + `uuid`/
+  `futures` deps), `fpa-fabric` (WS client adapter + `frf-domain` dep + a WS dep —
+  `tokio-tungstenite`, verify current version). `fpa-gateway` composition unaffected
+  (same adapter, new method). New deps: verify `tokio-tungstenite` version (Base Rule 22)
+  + the `frf-domain` path dep.
 
 ## Open Questions
-- **`/ws/v1/subscribe` request shape** — the `SubscriptionSpec` (what to subscribe to:
-  table/tenant/filter) and auth (bearer in a header or query) — confirm from
-  `frf-gateway/src/routes/subscribe.rs` at execute.
-- **`frf-agentproto` as a path dep across repos** — fine for a local smoke; note it's
-  not portable (a published crate would be better long-term). Confirm acceptable.
-- **Trigger for the smoke event:** fabric ships a `dev` route "to exercise the full
-  subscribe fan-out" — use it, or drive a real forge DB write that CDC picks up.
-  Decide at spec-of-smoke (p10-c005).
+- **`frf-domain` as a path dep across repos** — fine for a local smoke; note it's not
+  portable (a published crate would be better long-term). Confirmed acceptable by the
+  operator at execute.
+- **Channel UUID for the smoke:** which channel the smoke subscribes to (the fabric
+  gateway requires a UUID `channel` query param) — decide at p10-c005 alongside the
+  forge-write / CDC trigger.

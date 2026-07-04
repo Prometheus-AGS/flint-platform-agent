@@ -22,7 +22,7 @@ forge (c002), real fabric (c003), and the agent — into a single `smoke/compose
   `compose.smoke.yml` (p9) stay as the fast path.
 - **`smoke/smoke.real.spec.ts`** — the phase-9 smoke against the real stack, PLUS a
   **realtime event test**: agent subscribes (c004) → a change is driven (forge DB write
-  or fabric `dev` trigger) → the agent receives the `ContentBlock` change event.
+  or fabric `dev` trigger) → the agent receives the `EventEnvelope` change event.
 
 ## Capabilities
 
