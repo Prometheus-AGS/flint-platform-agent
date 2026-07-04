@@ -586,15 +586,11 @@ mod tests {
 
     // ---- p7-c002: application.define ----
 
-    async fn seed_project(
-        store: &Arc<crate::project_store::InMemoryProjectStore>,
-        r: &TaskRunner,
-        pid: Uuid,
-    ) {
+    async fn seed_project(r: &TaskRunner, pid: Uuid) {
+        // The runner already holds the store; callers assert on it directly.
         let mut t = task("project.create");
         t.input = serde_json::json!({ "name": "host", "project_id": pid });
         r.run(&t, &auth(&["operator"])).await.expect("seed");
-        let _ = store;
     }
 
     #[tokio::test]
@@ -602,7 +598,7 @@ mod tests {
         let store = Arc::new(crate::project_store::InMemoryProjectStore::new());
         let r = runner_with_store(store.clone());
         let pid = Uuid::from_u128(0x7010);
-        seed_project(&store, &r, pid).await;
+        seed_project(&r, pid).await;
 
         // Define app A1.
         let mut t = task("application.define");
@@ -682,6 +678,24 @@ mod tests {
             assert!(
                 is_gate_write_kind(entry.kind) || GATE_READ_KINDS.contains(&entry.kind),
                 "Gate catalog kind '{}' is unclassified — add it to is_gate_write_kind or GATE_READ_KINDS",
+                entry.kind
+            );
+        }
+    }
+
+    #[test]
+    fn every_store_catalog_kind_is_dispatched() {
+        // p7 (rust-review LOW): guard against a future TargetPort::Store kind being
+        // catalogued without a `dispatch_store` arm — it would hit the clean catch-all
+        // ("store kind not implemented") rather than its intended handler.
+        const STORE_KINDS: &[&str] = &["project.create", "application.define"];
+        for entry in catalog::CATALOG
+            .iter()
+            .filter(|e| e.target == TargetPort::Store)
+        {
+            assert!(
+                STORE_KINDS.contains(&entry.kind),
+                "Store catalog kind '{}' has no dispatch_store arm — add it or update STORE_KINDS",
                 entry.kind
             );
         }
