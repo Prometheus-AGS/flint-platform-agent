@@ -1,0 +1,19 @@
+# BuildKit resolves this file relative to the Dockerfile (smoke/fdb-gateway.Dockerfile),
+# NOT inside the build context — so it trims the ../flint-forge context WITHOUT writing
+# any file into the forge repo. Keeps the 34 GB target/ and .git out of the build.
+target/
+.git/
+.jj/
+# forge KBD/agent state — not needed to build the crate.
+.kbd-orchestrator/
+.prometheus/
+.dagger/
+# CRITICAL: never ship a machine-local cargo config into the build (host sccache/linker
+# paths). forge only has .cargo/config.toml.example today, but exclude the dir anyway.
+.cargo/
+# docs / images / large non-source trees.
+docs/
+images/
+**/*.log
+.DS_Store
+node_modules/

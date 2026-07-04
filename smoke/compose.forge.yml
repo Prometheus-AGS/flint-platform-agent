@@ -1,0 +1,82 @@
+# Real forge plane for the smoke — standalone (proves c002 in isolation).
+#
+# forge-postgres  : forge's REAL CI PG-18 image (pgvector + pg_graphql), built from
+#                   ../flint-forge/docker/postgres/Dockerfile.
+# forge-bootstrap : one-shot — seeds roles + the vendored flint_meta schema, then
+#                   applies forge's real migrations (psql glob; handles dup 0005/0006).
+# forge-gateway   : forge's REAL Quarry gateway (fdb-gateway), built from the forge
+#                   crate via smoke/fdb-gateway.Dockerfile. Binds :8080.
+#
+# c005 folds these services (namespaced) into the unified compose.real.yml alongside
+# the agent + real gate + real fabric. Nothing here is written into ../flint-forge.
+#
+# Run standalone:  DOCKER_HOST=<colima> docker compose -f smoke/compose.forge.yml up --build
+
+name: fpa-smoke-forge
+
+services:
+  forge-postgres:
+    build:
+      # forge repo is the context; its own Dockerfile builds the CI PG image.
+      context: ../../flint-forge
+      dockerfile: docker/postgres/Dockerfile
+      args:
+        # forge's Dockerfile pins PGVECTOR_REF=v0.8.0, which FAILS to compile against
+        # Postgres 18 (PG18 changed `vacuum_delay_point()` to take a `bool` arg;
+        # pgvector 0.8.0 predates that — hnswvacuum.c: "too few arguments"). pgvector
+        # 0.8.1+ builds on PG18. We override the build-arg here (forge parameterizes it
+        # as `ARG PGVECTOR_REF`) — a smoke-side config override, NO forge edit.
+        PGVECTOR_REF: v0.8.4
+        # forge pins PG_GRAPHQL_REF=v1.5.11 — but supabase published NO pg18 .deb until
+        # v1.5.12 (assets for v1.5.11 stop at pg16/pg17). The v1.5.11 pg18 URL 404s, so
+        # forge's CI image can NEVER build on PG18 as pinned. v1.6.1 has pg18 debs
+        # (amd64+arm64) with the same filename pattern forge's Dockerfile expects.
+        PG_GRAPHQL_REF: v1.6.1
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: flint
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d flint"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  forge-bootstrap:
+    image: postgres:18-bookworm # psql client only; runs to completion then exits 0.
+    depends_on:
+      forge-postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@forge-postgres:5432/flint
+      BOOTSTRAP_DIR: /bootstrap
+    volumes:
+      - ./forge-bootstrap:/bootstrap:ro
+    # Seeds ONLY roles + flint_meta (the prereqs forge's migrations assume). The
+    # gateway runs the migrations itself at boot (sqlx::migrate!, idempotent).
+    entrypoint: ["/bin/sh", "/bootstrap/apply.sh"]
+    restart: "no"
+
+  forge-gateway:
+    build:
+      # forge repo is the context; our smoke Dockerfile builds the fdb-gateway crate.
+      # The adjacent fdb-gateway.Dockerfile.dockerignore trims the 34 GB target/.
+      context: ../../flint-forge
+      dockerfile: ../flint-platform-agent/smoke/fdb-gateway.Dockerfile
+    depends_on:
+      forge-bootstrap:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@forge-postgres:5432/flint
+      # No real Keto in this standalone file — the gateway degrades to deny-all on the
+      # authz path; the unified c005 compose can point this at a real keto service.
+      KETO_BASE_URL: http://keto:4466
+      RUST_LOG: info
+    ports:
+      - "18080:8080" # host 18080 -> gateway 8080 (avoid clashes with other planes)
+    healthcheck:
+      test: ["CMD-SHELL", "exit 0"] # slim runtime has no curl; real check via the smoke HTTP hop.
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s

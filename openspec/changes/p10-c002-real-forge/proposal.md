@@ -32,11 +32,31 @@ image (per the re-sync: the CI image installs pg_graphql from a prebuilt `.deb`)
   crate). Forge PG + migrate + gateway services contribute to `compose.real.yml`
   (p10-c004). No agent Rust change.
 
-## Open Questions
-- **`fdb-gateway` bind port** — confirm from `../flint-forge/crates/fdb-gateway/src/main.rs`
-  at execute (was seen ~8080). Wire `FPA_FORGE_URL` to it.
-- **Migrate runner:** a `sqlx-cli` one-shot container (`ghcr.io/.../sqlx` or build it) vs
-  running `sqlx migrate run` inside the gateway image at startup. Decide at execute
-  (lean: a dedicated one-shot so the gateway image stays minimal).
-- Author the gateway Dockerfile in our `smoke/` (builds from the `../flint-forge`
-  context) — does NOT edit the forge repo.
+## Execute outcome (2026-07-04)
+
+Grounding against the LIVE forge reshaped this change. **What is PROVEN real:**
+- forge's CI PG-18 image builds (pgvector + pg_graphql) — after fixing **two forge
+  Dockerfile bugs** via smoke-side `build.args` overrides (NO forge edit):
+  `PGVECTOR_REF=v0.8.4` (v0.8.0 won't compile on PG18) + `PG_GRAPHQL_REF=v1.6.1`
+  (v1.5.11 has no pg18 `.deb` → 404).
+- **`smoke/fdb-gateway.Dockerfile` builds** the real gateway from the forge crate via a
+  read-only build context (BuildKit adjacent `.dockerignore` trims forge's 34 GB
+  `target/` without writing into forge). Confirmed: forge's crate builds without a DB.
+- **DB pre-seed works:** `smoke/forge-bootstrap/` seeds roles + a vendored copy of
+  forge's pure-SQL `flint_meta.sql` (the prereqs forge's migrations assume). `forge-
+  postgres` healthy, `forge-bootstrap` exits 0.
+
+**What is DEFERRED to best-effort** (blocked on a forge bug we cannot fix from outside):
+- The live **`fdb-gateway` boot**. It runs `sqlx::migrate!` at startup, which **rejects
+  forge's duplicate migration versions** (two `0005_`, two `0006_`) →
+  `_sqlx_migrations_pkey: Key (version)=(5) already exists`. The filenames are compiled
+  into the gateway binary, so this is un-workaroundable from `smoke/`. The offending
+  files are **untracked in-flight forge work** (p5-c005), so we did NOT rename them.
+- **Filed: Know-Me-Tools/flint-forge#7** — full functional spec of all three blockers.
+  When forge ships unique migration versions, our gateway boots with zero smoke changes.
+
+## Open Questions (resolved / carried)
+- ~~`fdb-gateway` bind port~~ — confirmed hard-coded `0.0.0.0:8080` in its `main.rs`.
+- ~~Migrate runner~~ — resolved: the gateway self-migrates via `sqlx::migrate!`; our
+  bootstrap only pre-seeds prerequisites (roles + flint_meta), does NOT run migrations.
+- Gateway boot re-enables when **forge#7** (dup migration versions) lands.
