@@ -3,7 +3,7 @@
   "previousPhase": "project-artifact-depth",
   "change": null,
   "status": "execute_complete",
-  "currentTask": "2/2 changes done + green (fpa-app 33/33, gateway 13+6); p6 archived. rust-reviewer on c001 pending. Then reflect.",
+  "currentTask": "2/2 done + green (fpa-app 33/33); p6 archived; rust-reviewer APPROVE, 3 findings fixed. Run reflect.",
   "nextPendingChange": null,
   "sourceTool": "unknown",
   "exactNextCommand": "/kbd-reflect project-read-and-list",
@@ -11,5 +11,5 @@
   "parentPhase": null,
   "childPhases": [],
   "childPointer": null,
-  "updatedAt": "2026-07-04T00:58:00Z"
+  "updatedAt": "2026-07-04T01:05:00Z"
 }
