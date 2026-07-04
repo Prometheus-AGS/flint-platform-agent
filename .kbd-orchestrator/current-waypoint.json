@@ -2,14 +2,14 @@
   "phase": "project-read-and-list",
   "previousPhase": "project-artifact-depth",
   "change": null,
-  "status": "execute_complete",
-  "currentTask": "2/2 done + green (fpa-app 33/33); p6 archived; rust-reviewer APPROVE, 3 findings fixed. Run reflect.",
+  "status": "reflect_complete",
+  "currentTask": "reflection written; all goals MET, reviewer APPROVE, cleanest execute. Next phase is an operator A/B decision: live-smoke-and-durable-proof (infra-gated, higher value) vs a no-infra CRUD-completion step.",
   "nextPendingChange": null,
   "sourceTool": "unknown",
-  "exactNextCommand": "/kbd-reflect project-read-and-list",
-  "recommendedNextPhase": null,
+  "exactNextCommand": "/kbd-next-phase",
+  "recommendedNextPhase": "live-smoke-and-durable-proof",
   "parentPhase": null,
   "childPhases": [],
   "childPointer": null,
-  "updatedAt": "2026-07-04T01:05:00Z"
+  "updatedAt": "2026-07-04T01:10:00Z"
 }

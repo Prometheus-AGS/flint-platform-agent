@@ -3,19 +3,18 @@ type: Reference
 id: empty-source-document
 title: Empty Source Document
 tags:
-- empty-source
-- documentation
+- empty-document
+- source-ingestion
 - knowledge-base
 sources:
 - stdin
-timestamp: 2026-07-04T01:19:03.313668+00:00
-created_at: 2026-07-04T01:19:03.313554+00:00
-updated_at: 2026-07-04T01:19:03.313668+00:00
+timestamp: 2026-07-04T10:56:27.022241+00:00
+created_at: 2026-07-04T10:56:27.019686+00:00
+updated_at: 2026-07-04T10:56:27.022241+00:00
 revision: 1
 ---
 
-No substantive engineering content was provided in the raw document.
+No technical content was provided in the raw document.
 
 # Citations
-
 1. [1] stdin
