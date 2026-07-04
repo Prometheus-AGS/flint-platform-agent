@@ -11,10 +11,11 @@
 FROM rust:1.93-slim-bookworm AS builder
 WORKDIR /build
 
-# Build deps: pkg-config + git occasionally needed by transitive build scripts;
-# ca-certificates so cargo can fetch over HTTPS. (No libssl-dev — rustls-tls.)
+# Build deps: pkg-config + git for build scripts; ca-certificates for cargo HTTPS;
+# libssl-dev because a transitive dep pulls `openssl-sys` (needs system OpenSSL at
+# build time — reqwest is rustls, but something else in the tree links native openssl).
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      pkg-config ca-certificates git \
+      pkg-config ca-certificates git libssl-dev \
  && rm -rf /var/lib/apt/lists/*
 
 # Copy the whole workspace (the .dockerignore trims target/, .git, KBD state, AND
@@ -32,8 +33,10 @@ RUN cargo build -p fpa-gateway --release --bin fpa-gateway --locked
 
 # ─────────────────────────── runtime ───────────────────────────
 FROM debian:bookworm-slim AS runtime
+# ca-certificates for outbound HTTPS; libssl3 is the runtime shared lib for the
+# openssl-sys linkage (the -dev headers are build-only).
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      ca-certificates \
+      ca-certificates libssl3 \
  && rm -rf /var/lib/apt/lists/*
 
 # Non-root runtime user.
