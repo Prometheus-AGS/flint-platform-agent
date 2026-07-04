@@ -2,14 +2,14 @@
   "phase": "project-read-and-list",
   "previousPhase": "project-artifact-depth",
   "change": null,
-  "status": "plan_pending",
-  "currentTask": "2 change specs written + validated (p8-c001 store reads + list(), p8-c002 archive p6). Run plan.",
+  "status": "plan_complete",
+  "currentTask": "plan.md written; c001 store reads + list() (code) then c002 archive p6. Run execute.",
   "nextPendingChange": "p8-c001-project-store-reads",
   "sourceTool": "unknown",
-  "exactNextCommand": "/kbd-plan project-read-and-list",
+  "exactNextCommand": "/kbd-execute project-read-and-list",
   "recommendedNextPhase": null,
   "parentPhase": null,
   "childPhases": [],
   "childPointer": null,
-  "updatedAt": "2026-07-04T00:44:00Z"
+  "updatedAt": "2026-07-04T00:48:00Z"
 }
