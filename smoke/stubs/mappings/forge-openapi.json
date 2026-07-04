@@ -1,0 +1,8 @@
+{
+  "request": { "method": "GET", "url": "/openapi.json" },
+  "response": {
+    "status": 200,
+    "headers": { "Content-Type": "application/json" },
+    "jsonBody": { "openapi": "3.1.0", "info": { "title": "forge-stub", "version": "0" }, "components": { "schemas": {} } }
+  }
+}

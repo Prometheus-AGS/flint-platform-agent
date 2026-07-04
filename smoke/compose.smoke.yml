@@ -1,0 +1,61 @@
+# Live smoke stack for the Flint Platform Agent (p9-c002).
+#
+# Stands the REAL agent binary up on :8088 with its required dependencies satisfied by
+# stubs (HTTP) + a real Postgres. Drive it with smoke/run.sh (Playwright).
+#
+#   docker compose -f smoke/compose.smoke.yml up --build   # bring up
+#   docker compose -f smoke/compose.smoke.yml down -v       # tear down
+#
+# The HS256 secret below is a THROWAWAY test secret (not a real credential) — the
+# smoke mints a bearer with it and the agent verifies with it.
+
+name: fpa-smoke
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  # One wiremock instance answers all three adapter probes:
+  #   forge  GET /openapi.json, fabric GET /healthz, gate GET /routes
+  deps:
+    image: wiremock/wiremock:latest
+    command: ["--port", "8080", "--disable-banner"]
+    volumes:
+      - ./stubs:/home/wiremock:ro
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/__admin/mappings || exit 1"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  agent:
+    build:
+      context: ..
+      dockerfile: smoke/Dockerfile
+    environment:
+      FPA_GATEWAY_ADDR: "0.0.0.0:8088"
+      # All three plane deps -> the one wiremock stub.
+      FPA_FORGE_URL: "http://deps:8080"
+      FPA_FABRIC_ENDPOINT: "http://deps:8080"
+      FPA_GATE_ADMIN_URL: "http://deps:8080"
+      # Durable ProjectStore -> the real Postgres.
+      FPA_PROJECT_DB_URL: "postgres://postgres:postgres@postgres:5432/postgres"
+      # HS256 shared secret for the smoke's minted bearer (throwaway test secret).
+      FPA_GATE_JWT_KEY: "smoke-hs256-secret-not-a-real-credential"
+      RUST_LOG: "info"
+    ports:
+      - "8088:8088"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      deps:
+        condition: service_healthy

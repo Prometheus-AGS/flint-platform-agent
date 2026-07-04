@@ -1,0 +1,16 @@
+# Keep the Docker build context small — exclude build artifacts, VCS, KBD state, node.
+target/
+.git/
+# CRITICAL: the machine-local .cargo/config.toml sets rustc-wrapper=sccache and a
+# host-only ld64.lld linker path — both absent in the container -> build fails with
+# "No such file or directory". Never copy it into the build context.
+.cargo/
+.kbd-orchestrator/
+.prometheus/
+node_modules/
+smoke/node_modules/
+**/*.log
+.DS_Store
+# The build only needs the workspace sources + manifests; not these.
+docs/
+images/
