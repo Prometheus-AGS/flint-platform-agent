@@ -21,10 +21,20 @@ COLIMA_MEM=10 COLIMA_CPUS=4 ./scripts/reset-colima.sh
 ```
 
 **What it does:** kills frozen docker/colima CLI calls → quits Docker Desktop and
-reaps its background processes → `colima delete --force` (with a `limactl` hard-reset
-fallback) → `colima start --cpu … --memory … --disk … --vm-type vz --mount-type
-virtiofs` → `docker context use colima` → verifies with `docker info` +
-`docker run --rm hello-world`.
+reaps its background processes → **`brew upgrade colima`** (stale builds have
+Apple-Silicon `vz` bugs — socket-provisioning + broken `restart`; current builds fix
+them) → `colima delete --force` (with a `limactl` hard-reset fallback) →
+`colima start --vm-type vz --mount-type virtiofs --cpu … --memory … --disk …` →
+`docker context use colima` → waits for dockerd (15–45s) → verifies with `docker info`
++ `docker run --rm hello-world`.
+
+**Runtime choice:** uses colima with the **`vz`** driver (Apple Virtualization.framework
+— fast, sub-second boots) because our make-or-break integration point is the Rust
+`testcontainers` crate, which speaks the **Docker API + Ryuk**. colima serves that
+socket directly. (Apple's `container` 1.0 does **not** implement the Docker API, so
+testcontainers needs a `socktainer` shim + `TESTCONTAINERS_RYUK_DISABLED` — two extra
+unknowns; not used here. Podman works but adds Ryuk-compat risk.) Overrides:
+`COLIMA_VMTYPE=qemu` (only if a vz regression resurfaces), `COLIMA_SKIP_UPGRADE=1`.
 
 **Cautions:** it **quits Docker Desktop** (does not uninstall it — relaunch later,
 just never run both engines at once). It leaves the privileged `com.docker.vmnetd`

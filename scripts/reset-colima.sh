@@ -60,16 +60,24 @@ if colima status --profile "$PROFILE" >/dev/null 2>&1; then
   limactl delete -f "colima${PROFILE:+-$PROFILE}" 2>/dev/null || limactl delete -f colima 2>/dev/null
 fi
 
+# ---- 3b. upgrade colima FIRST (stale builds have Apple-Silicon vz bugs) ------
+# A stale colima was observed to break vz docker-socket provisioning + `colima restart`.
+# Recent releases fix the Apple-Silicon vz issues, and vz is the FAST driver we want
+# (Virtualization.framework, sub-second boots) — so upgrade before recreating.
+# Skip with COLIMA_SKIP_UPGRADE=1.
+if [ "${COLIMA_SKIP_UPGRADE:-0}" != "1" ] && command -v brew >/dev/null 2>&1; then
+  say "Upgrading colima to a current build (brew) — fixes stale vz bugs"
+  brew upgrade colima 2>&1 | tail -3 || echo "  (already current or brew upgrade skipped)"
+  echo "  colima version: $(colima version 2>/dev/null | head -1)"
+fi
+
 # ---- 4. start a clean, large VM ---------------------------------------------
-# VM driver: default (qemu). The experimental `vz` driver was observed to leave the
-# guest user without working docker-socket permissions (in-VM `permission denied on
-# /var/run/docker.sock`) AND to break `colima restart` ("cannot restart, VM not
-# previously started"). qemu provisions the docker group reliably. Set
-# COLIMA_VMTYPE=vz to opt back in if a future colima fixes it.
-VMTYPE="${COLIMA_VMTYPE:-qemu}"
+# VM driver: vz (Apple Virtualization.framework) — the FAST path on Apple Silicon.
+# Requires a current colima (see step 3b). Override with COLIMA_VMTYPE=qemu only if a
+# vz regression resurfaces. virtiofs is the fast mount and is vz-only; qemu needs sshfs.
+VMTYPE="${COLIMA_VMTYPE:-vz}"
 say "Starting a clean colima VM: ${CPUS} CPU / ${MEM} GiB / ${DISK} GiB (vm-type: ${VMTYPE})"
 COLIMA_START_ARGS=(--profile "$PROFILE" --cpu "$CPUS" --memory "$MEM" --disk "$DISK" --vm-type "$VMTYPE")
-# virtiofs only works with vz; qemu uses sshfs. Pick the compatible mount type.
 if [ "$VMTYPE" = "vz" ]; then
   COLIMA_START_ARGS+=(--mount-type virtiofs)
 else
