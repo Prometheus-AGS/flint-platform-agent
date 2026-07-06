@@ -2,14 +2,14 @@
   "phase": "real-sibling-smoke",
   "previousPhase": "live-smoke-and-durable-proof",
   "change": null,
-  "status": "execute_pending",
-  "currentTask": "plan done: 6 REAL changes ordered by dependency — (1) c004 subscribe client [only new Rust, compile first], (2) c002 forge [author fdb-gateway Dockerfile — highest authoring risk], (3) c001 gate, (4) c003 fabric [heaviest boot], (5) c005 unified compose+realtime smoke [integration milestone], (6) c006 pgrx [best-effort opt-in]. G2 'stub fabric' from analyze is SUPERSEDED by operator's 'nothing but REAL'. Next: execute, first change c004.",
-  "nextPendingChange": "p10-c004-fabric-realtime-client",
+  "status": "phase_complete",
+  "currentTask": "PHASE COMPLETE 6/6. Primary goals MET: real gate + fabric + unified smoke 5/5 live-green (smoke.real.spec.ts vs real gate+fabric+agent-PG); EXCEEDED with the fabric subscribe client (c004) + /fabric/subscribe SSE bridge. Forge STRETCH PARTIAL as the goal allowed: PG/bootstrap/fdb-gateway-Dockerfile proven, live gateway boot + pgrx image blocked on forge bugs (dup migrations + .dockerignore) — reported on flint-forge#7. 3 forge bugs surfaced+reported; zero writes into sibling repos; frf-domain vendored. Reflect done.",
+  "nextPendingChange": null,
   "sourceTool": "unknown",
-  "exactNextCommand": "/kbd-execute real-sibling-smoke",
-  "recommendedNextPhase": null,
+  "exactNextCommand": "/kbd-new-phase forge-gateway-live",
+  "recommendedNextPhase": "forge-gateway-live",
   "parentPhase": null,
   "childPhases": [],
   "childPointer": null,
-  "updatedAt": "2026-07-04T16:35:00Z"
+  "updatedAt": "2026-07-06T18:10:00Z"
 }
