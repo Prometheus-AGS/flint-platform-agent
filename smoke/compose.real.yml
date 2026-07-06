@@ -179,6 +179,11 @@ services:
   # PG + bootstrap PROVEN; forge-gateway BLOCKED on flint-forge#7 (dup migration
   # versions). Gateway is in the `forge-full` profile so the default run converges.
   forge-postgres:
+    # forge-full only: nothing in the DEFAULT run uses forge (the agent's FPA_FORGE_URL
+    # points at forge-gateway, which is blocked on flint-forge#7). Keeping the forge PG
+    # out of the default run lightens the stack to the planes that actually serve the
+    # agent's HTTP hops (gate + fabric). The forge PG + bootstrap are proven in c002.
+    profiles: ["forge-full"]
     image: postgres:18-bookworm
     build:
       context: ../../flint-forge
@@ -197,6 +202,11 @@ services:
       start_period: 30s
 
   forge-bootstrap:
+    # Only needed alongside the forge gateway (forge-full). A one-shot that exits 0
+    # trips `docker compose up --wait` (it treats the exit as a stopped service and
+    # fails the wait), which would tear the healthy stack down. Gate it to the same
+    # profile as forge-gateway so the default run isn't blocked by it.
+    profiles: ["forge-full"]
     image: postgres:18-bookworm
     depends_on:
       forge-postgres:

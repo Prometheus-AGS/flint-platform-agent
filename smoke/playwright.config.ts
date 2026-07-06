@@ -4,7 +4,9 @@ import { defineConfig } from "@playwright/test";
 // API — no browser projects needed. baseURL points at the containerized agent.
 export default defineConfig({
   testDir: ".",
-  testMatch: /smoke\.spec\.ts/,
+  // Match both the stub smoke (smoke.spec.ts) and the real-stack smoke
+  // (smoke.real.spec.ts). run.sh / run-real.sh pass the specific file as a filter.
+  testMatch: /smoke(\.real)?\.spec\.ts/,
   fullyParallel: false,
   reporter: [["list"]],
   use: {
