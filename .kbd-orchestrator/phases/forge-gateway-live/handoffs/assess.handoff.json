@@ -1,0 +1,11 @@
+{
+  "stage": "assess",
+  "completedAt": "2026-07-06T18:37:22Z",
+  "outputs": [
+    "assessment.md"
+  ],
+  "nextStage": "analyze",
+  "summaryForNext": "flint-forge#7 STILL OPEN — all 3 bugs present on forge's live dirty tree; goal 1 (real forge gateway boot) stays BLOCKED/gated. Pivot to CI wiring: existing Rust CI green (frf-domain vendored, no cross-repo deps), but the REAL smoke can't run in stock CI (siblings not in-repo). Recommend stub-smoke-per-PR + opt-in nightly real smoke + a make/README target for run-real.sh --no-build. Optional stretch: realtime-receipt via a dev IdP + Keto seed. Analyze decision: the CI shape.",
+  "skipped": false,
+  "skipReason": null
+}
