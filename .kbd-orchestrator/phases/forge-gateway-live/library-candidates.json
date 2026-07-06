@@ -1,0 +1,50 @@
+{
+  "phase": "forge-gateway-live",
+  "generatedAt": "2026-07-06T18:30:00Z",
+  "mode": "stack-specified",
+  "researchTiersRun": ["internal-repo", "gh-api-runners", "known-gh-actions-behavior"],
+  "researchSkipReason": "No external library to adopt — the stack is GitHub Actions (built into ubuntu-latest) + the already-present self-contained stub smoke. Decision is a CI-shape call bounded by facts in hand (no self-hosted runner; gate/forge are cross-org; the stub smoke needs no siblings).",
+  "candidates": [
+    {
+      "id": "cand-001",
+      "name": "docker compose on ubuntu-latest (stock runner)",
+      "gap_id": "G2",
+      "verdict": "adopt",
+      "evidence": "ubuntu-latest ships Docker + Compose v2; a compose graph runs via a shell step (GH Actions `services:` only does single containers). No new dependency.",
+      "confidence": "high"
+    }
+  ],
+  "build_required": [
+    {
+      "gap_id": "G2",
+      "summary": "Per-PR CI: add a `smoke` job to .github/workflows/ci.yml that runs the SELF-CONTAINED stub smoke (smoke/run.sh → compose.smoke.yml: agent + postgres + wiremock; no siblings, no secrets). frf-domain vendored → agent builds from this repo alone.",
+      "capability_gap_id": null,
+      "verdict": "build"
+    },
+    {
+      "gap_id": "G3",
+      "summary": "Opt-in REAL smoke workflow (workflow_dispatch + optional nightly schedule): clone the 3 siblings at pinned refs (cross-org PAT for Know-Me-Tools/{gate,forge}), build once, run run-real.sh --no-build. NOT per-PR (no self-hosted runner; heavy builds; cross-org secret). Gated behind a token being provisioned — else keep real smoke local-only.",
+      "capability_gap_id": null,
+      "verdict": "build"
+    },
+    {
+      "gap_id": "G4",
+      "summary": "Makefile (or documented commands) exposing `smoke` / `smoke-real` / `smoke-real-nobuild`; update smoke/README to document run-real.sh + --no-build + the compose.real.yml default vs forge-full profile. Trivial.",
+      "capability_gap_id": null,
+      "verdict": "build"
+    },
+    {
+      "gap_id": "G5",
+      "summary": "OPTIONAL stretch: real realtime-RECEIPT proof — a dev IdP (tiny JWKS the fabric gateway trusts via GATEWAY_JWKS_URL + a matching bearer) + a Keto seed step (write subscribe/view relation tuples). Authored in smoke/, couples to fabric authz. Heaviest; include only if G2/G4 land light.",
+      "capability_gap_id": null,
+      "verdict": "build"
+    }
+  ],
+  "blocked": [
+    {
+      "gap_id": "G1",
+      "summary": "Real forge gateway boot — BLOCKED on flint-forge#7 (all 3 bugs still open on forge's live dirty tree: pgvector/pg_graphql pins, dup migration versions, .dockerignore excludes images/). Out of scope this phase; the authored fdb-gateway Dockerfile + bootstrap remain ready for a --forge-full flip once #7 lands.",
+      "capability_gap_id": "flint-forge#7"
+    }
+  ]
+}

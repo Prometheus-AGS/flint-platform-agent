@@ -1,0 +1,12 @@
+{
+  "stage": "analyze",
+  "completedAt": "2026-07-06T18:43:10Z",
+  "outputs": [
+    "analysis.md",
+    "library-candidates.json"
+  ],
+  "nextStage": "spec",
+  "summaryForNext": "1 adopt (stock docker-compose on ubuntu-latest) + 4 build_required (G2 per-PR stub smoke job, G3 opt-in nightly/dispatch real smoke needing cross-org PAT, G4 make/README target, G5 optional realtime-receipt via dev-IdP+Keto-seed). G1 real forge gateway BLOCKED on flint-forge#7 (still open, all 3 bugs). Key operator decision: CI shape — per-PR stub + opt-in real (recommended) vs self-hosted runner; and whether to provision a cross-org token or keep real smoke local-only.",
+  "skipped": false,
+  "skipReason": null
+}
