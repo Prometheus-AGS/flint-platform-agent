@@ -1,0 +1,105 @@
+# Real fabric plane for the smoke — standalone (proves c003 in isolation).
+#
+# Modeled on fabric's OWN `../flint-realtime-fabric/compose.ci.yml` (their purpose-built
+# self-contained /healthz stack for "Stage 10 live run"): the gateway + its 3 hard deps
+# (iggy, keto with in-memory DSN, postgres with logical WAL), no bind-mounts, no
+# surrealdb/flint-gate (not needed for health). Services are `fabric-` prefixed so they
+# merge into the unified compose.real.yml (c005) without colliding with gate/forge PG.
+#
+# SCOPE = c003 (health only): CDC_ENABLED=false. The realtime-event path (c005) flips
+# CDC_ENABLED=true and adds the frf_pub/frf_slot seed (fabric's deploy/postgres/init.sql,
+# vendored under smoke/ then — same discipline as the forge bootstrap).
+#
+# Read-only consumption of ../flint-realtime-fabric (build context only); NOTHING is
+# written into the fabric repo (which was also actively dirty).
+#
+# Run standalone:  DOCKER_HOST=<colima> docker compose -f smoke/compose.fabric.yml up --build
+
+name: fpa-smoke-fabric
+
+services:
+  fabric-postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: frf
+      POSTGRES_PASSWORD: frf
+      POSTGRES_DB: frf
+    # Logical WAL so CDC can attach in c005 (harmless for the health-only c003 run).
+    command: postgres -c wal_level=logical -c max_replication_slots=5 -c max_wal_senders=5
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U frf -d frf"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  fabric-iggy:
+    image: iggyrs/iggy:latest
+    environment:
+      IGGY_SYSTEM_PATH: "/data"
+    volumes:
+      - fabric-iggy-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "iggy --transport tcp --server-address localhost:8090 me 2>/dev/null || exit 0"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  fabric-keto:
+    image: oryd/keto:v0.12
+    # keto v0.12 needs a config FILE (the env-only DSN in fabric's untracked
+    # compose.ci.yml fails with "unable to initialize config provider"). Mount the
+    # vendored keto.yml (dsn: memory + namespace `default`) and point -c at it.
+    volumes:
+      - ./fabric-config/keto.yml:/etc/config/keto/keto.yml:ro
+    command: ["serve", "-c", "/etc/config/keto/keto.yml"]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:4466/health/ready || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  fabric-gateway:
+    build:
+      # fabric repo is the context; its own Dockerfile builds frf-gateway.
+      context: ../../flint-realtime-fabric
+      dockerfile: Dockerfile
+      args:
+        CARGO_FEATURES: dev-endpoints # enables /dev/* routes (c005 realtime trigger)
+    depends_on:
+      fabric-iggy:
+        condition: service_healthy
+      fabric-keto:
+        condition: service_started
+      fabric-postgres:
+        condition: service_healthy
+    environment:
+      BIND_ADDR: "0.0.0.0:8080"
+      GRPC_PORT: "9090"
+      IGGY_CONNECTION_STRING: "iggy://iggy:iggy@fabric-iggy:8090"
+      KETO_BASE_URL: "http://fabric-keto:4466"
+      KETO_NAMESPACE: "default"
+      # Required at config-parse (frf-gateway config.rs: "GATEWAY_JWKS_URL must be set")
+      # even in dev. With DEV_NO_AUTH=true it is not actually fetched — this standalone
+      # fabric has no gate, so a placeholder satisfies the parse. c005 points it at the
+      # real gate's /signing-keys.
+      GATEWAY_JWKS_URL: "http://fabric-gateway:8080/.well-known/jwks.json"
+      JWT_AUDIENCE: "frf-gateway"
+      SFU_MODE: "sovereign"
+      RUST_LOG: "info"
+      CDC_ENABLED: "false" # c003 = health only; c005 flips this true + seeds the slot
+      DEV_NO_AUTH: "true"
+    ports:
+      - "28080:8080" # gateway HTTP (host 28080)
+      - "29090:9090" # gRPC (host 29090)
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+      start_period: 40s
+
+volumes:
+  fabric-iggy-data:

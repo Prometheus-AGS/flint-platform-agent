@@ -1,0 +1,21 @@
+# VENDORED COPY of ../flint-realtime-fabric/deploy/keto/keto.yml
+# keto v0.12 requires a config FILE (the env-only DSN in fabric's untracked
+# compose.ci.yml fails: 'unable to initialize config provider'). Mounted into the
+# smoke keto container. Smoke-owned; never written back into ../flint-realtime-fabric.
+
+dsn: memory
+
+serve:
+  read:
+    host: 0.0.0.0
+    port: 4466
+  write:
+    host: 0.0.0.0
+    port: 4467
+
+namespaces:
+  - id: 0
+    name: default
+
+log:
+  level: info

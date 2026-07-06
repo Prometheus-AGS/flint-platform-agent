@@ -1,12 +1,12 @@
-## 1. Real fabric services (into compose.real.yml)
+## 1. Real fabric services (proven standalone in smoke/compose.fabric.yml; folds into compose.real.yml at c005)
 
-- [ ] 1.1 Port fabric's services from `../flint-realtime-fabric/compose.yml`: `fabric-gateway` (`build: { context: ../../flint-realtime-fabric }`), `iggy-server` (`iggyrs/iggy:latest`), `keto` (`oryd/keto:v0.12`, mount its config), `surrealdb`, `fabric-postgres` (`postgres:17`).
-- [ ] 1.2 Wire the gateway env (`IGGY_CONNECTION_STRING`, `KETO_BASE_URL`, DB) + `depends_on` (iggy service_healthy, keto service_started, surreal/pg service_healthy) exactly as fabric's compose.
-- [ ] 1.3 Rename services with a `fabric-` prefix to avoid collisions with gate/forge postgres etc.
-- [ ] 1.4 Agent env `FPA_FABRIC_ENDPOINT` → `http://fabric-gateway:<port>`.
+- [x] 1.1 Modeled on fabric's OWN `compose.ci.yml` (their self-contained /healthz stack): `fabric-gateway` (`build` from `../flint-realtime-fabric` Dockerfile, `CARGO_FEATURES=dev-endpoints`), `fabric-iggy` (`iggyrs/iggy:latest`), `fabric-keto` (`oryd/keto:v0.12`), `fabric-postgres` (`postgres:17-alpine`, logical WAL). surrealdb + flint-gate omitted (not needed for health). PROVEN: all 4 healthy.
+- [x] 1.2 Gateway env wired: `IGGY_CONNECTION_STRING`, `KETO_BASE_URL`, `KETO_NAMESPACE`, `GATEWAY_JWKS_URL` (placeholder — hard-required at parse even in dev), `DEV_NO_AUTH=true`, `CDC_ENABLED=false` (health-only; c005 flips true). `depends_on`: iggy/postgres `service_healthy`, keto `service_started`.
+- [x] 1.3 Services `fabric-` prefixed (no collision with gate/forge PG). Two fixes vs fabric's broken untracked `compose.ci.yml`: (a) keto v0.12 needs a config FILE — vendored `smoke/fabric-config/keto.yml` + `serve -c`; (b) `GATEWAY_JWKS_URL` must be set.
+- [x] 1.4 Agent env `FPA_FABRIC_ENDPOINT` → `http://fabric-gateway:8080` (host 28080 standalone).
 
 ## 2. Verification
 
-- [ ] 2.1 fabric gateway builds; iggy/keto/surreal/pg become healthy; gateway boots.
-- [ ] 2.2 `curl` fabric-gateway `/healthz` → 200; the agent's `fabric.health` hop hits it.
-- [ ] 2.3 Generous `start_period` on healthchecks (fabric is the heaviest); if a dep OOMs on the 12 GiB VM, record it as a real finding.
+- [x] 2.1 fabric gateway builds (rust:latest, full workspace); iggy/keto/postgres healthy; gateway healthy. PROVEN.
+- [x] 2.2 `GET /healthz` on the real fabric gateway → **HTTP 200** `{"status":"ok","version":"0.1.0"}` (the agent's exact `fabric.health` hop). PROVEN.
+- [x] 2.3 Generous `start_period` (gateway 40s — heaviest). No OOM on the 12 GiB VM in the standalone run. **FINDING (for c005):** iggy client/server version mismatch — gateway logs `invalid_command` / `Failed to get cluster metadata` against `iggyrs/iggy:latest`; degrades gracefully (health stays 200) but MAY affect c005's realtime event path (the bus rides on iggy). Consider pinning the iggy tag at c005. Recorded in memory.

@@ -25,9 +25,24 @@ fabric via `GET /healthz`, but per the directive it must hit the **real** fabric
 - Contributes fabric's ~6 services to `compose.real.yml` (p10-c004); build context
   `../flint-realtime-fabric`. Heavy (this is the weightiest plane). No agent Rust change.
 
-## Open Questions
-- **Resource weight:** fabric adds iggy + keto + surrealdb + postgres + the gateway
-  build — on the 12 GiB VM with gate + forge also running, this is the highest-pressure
-  point. Bring the stack up **incrementally / with generous healthcheck start_periods**;
-  if a fabric dep OOMs, that's a real finding (record it; the directive is real, so we
-  fix rather than stub).
+## Execute outcome (2026-07-06) — health PROVEN
+
+Standalone `smoke/compose.fabric.yml` (modeled on fabric's own `compose.ci.yml`) brings
+up the REAL gateway + iggy + keto + postgres, all healthy; the agent's exact hop `GET
+/healthz` → **HTTP 200** `{"status":"ok","version":"0.1.0"}`. Lighter than the full
+compose.yml — surrealdb + flint-gate dropped (not needed for health), `CDC_ENABLED=false`.
+
+Two fixes vs fabric's untracked (broken) `compose.ci.yml`, both smoke-side (nothing
+written into ../flint-realtime-fabric): (1) keto v0.12 needs a config **file** — vendored
+`smoke/fabric-config/keto.yml`; (2) `GATEWAY_JWKS_URL` is hard-required at config parse
+even in dev — set a placeholder.
+
+**Finding for c005:** an **iggy client/server version mismatch** (gateway's `iggy` client
+crate vs `iggyrs/iggy:latest`) logs `invalid_command` / `Failed to get cluster metadata`.
+The gateway degrades gracefully (health stays 200), but the realtime event bus rides on
+iggy — c005's write→CDC→subscribe path may need a pinned iggy tag. Recorded.
+
+## Open Questions (resolved / carried)
+- ~~Resource weight~~ — standalone fabric ran fine on the 12 GiB VM (no OOM). The
+  all-planes-at-once pressure is a c005 concern (wave-bringup fallback already specced).
+- iggy version pin — carried to c005 (realtime path).

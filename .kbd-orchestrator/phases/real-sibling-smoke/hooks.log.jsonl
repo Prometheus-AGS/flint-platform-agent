@@ -24,3 +24,5 @@
 {"ts":"2026-07-04T20:12:33Z","kind":"task","edge":"after","name":"real-sibling-smoke","index":2,"total":6,"phasePath":"real-sibling-smoke","sourceTool":"unknown","hookId":"kbd-memory-log","layer":"builtin","mode":"augment","status":0}
 {"ts":"2026-07-06T13:30:45Z","kind":"task","edge":"after","name":"real-sibling-smoke","index":3,"total":6,"phasePath":"real-sibling-smoke","sourceTool":"unknown","hookId":"report-progress","layer":"builtin","mode":"augment","status":0}
 {"ts":"2026-07-06T13:30:45Z","kind":"task","edge":"after","name":"real-sibling-smoke","index":3,"total":6,"phasePath":"real-sibling-smoke","sourceTool":"unknown","hookId":"kbd-memory-log","layer":"builtin","mode":"augment","status":0}
+{"ts":"2026-07-06T14:15:03Z","kind":"task","edge":"after","name":"real-sibling-smoke","index":4,"total":6,"phasePath":"real-sibling-smoke","sourceTool":"unknown","hookId":"report-progress","layer":"builtin","mode":"augment","status":0}
+{"ts":"2026-07-06T14:15:03Z","kind":"task","edge":"after","name":"real-sibling-smoke","index":4,"total":6,"phasePath":"real-sibling-smoke","sourceTool":"unknown","hookId":"kbd-memory-log","layer":"builtin","mode":"augment","status":0}

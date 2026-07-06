@@ -61,3 +61,6 @@
 # Transient KBD lock files — never travel (must come after !.kbd-orchestrator/** to win).
 *.lock.jsonl
 **/*.jsonl.lock
+
+# Transient Claude Code wakeup-scheduler lock
+.claude/scheduled_tasks.lock
