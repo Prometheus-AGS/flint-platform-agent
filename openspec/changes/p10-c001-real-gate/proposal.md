@@ -30,6 +30,27 @@ actively developed (`feat/agent-authz-budget-rate-limiting`; recently added its 
   `../flint-gate`. No agent Rust change. Stock deps (postgres:16, kratos:v1.2) + gate's
   own build.
 
-## Open Questions
-- gate's build is heavy-ish (node web + rust:1.90). Time-boxed like the others; if it
-  fails, that's a real finding to fix (this is the point of a real smoke).
+## Execute outcome (2026-07-06) — FULLY PROVEN
+
+Standalone `smoke/compose.gate.yml` brings up the REAL gate (built from `../flint-gate`)
++ `postgres:16-alpine`, both healthy; the agent's exact hop `GET /routes` on the real
+admin returns **HTTP 200** `{"routes":[],"source":"database"}`. No agent code change.
+
+Key grounding correction (recorded in memory `gate-admin-auth-smoke-posture`): the stock
+`config.example.yaml` binds admin to **loopback** (`127.0.0.1:4457`), unreachable from the
+agent's separate container. Widening to `0.0.0.0` triggers gate's **fail-safe**
+(`AdminAuthPosture::RefuseStart` — gate bails on a non-loopback admin bind without
+`admin_auth`). gate's inbound JWT verifier is **JWKS-only** (no shared-secret HS256), so a
+real IdP would be disproportionate. Resolution: a **smoke-owned** `config.smoke.yaml`
+(`0.0.0.0` binds + `admin_auth.provider.type: anonymous`) under `smoke/gate-config/` —
+gate boots under Enforce posture, admin is reachable, the read hop needs no credential.
+Nothing written into `../flint-gate` (read-only build context + config mount); gate was
+also actively dirty (another session), so read-only consumption was the right posture.
+
+Kratos was dropped from the standalone file (the anonymous path exercises no session
+auth). c005 folds these services (namespaced) into the unified `compose.real.yml`.
+
+## Open Questions (resolved)
+- ~~gate build heavy~~ — built fine (node web + rust:1.90), boots healthy.
+- ~~admin reachability/auth~~ — resolved via smoke `anonymous` admin_auth on a 0.0.0.0
+  bind (see above).

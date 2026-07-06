@@ -1,0 +1,58 @@
+# Real gate plane for the smoke — standalone (proves c001 in isolation).
+#
+# flint-gate    : the REAL gate, built from ../flint-gate (its own Dockerfile:
+#                 node:22 web build -> rust:1.90 -> debian-slim). Proxy :4456,
+#                 admin :4457. Runs its own DB migrations at startup.
+# gate-postgres : postgres:16-alpine (gate's stock DB image).
+#
+# Kratos is intentionally OMITTED: the smoke uses the `anonymous` admin-auth
+# provider (gate's inbound JWT is JWKS-only, too heavy for a health hop), so no
+# Kratos session path is exercised. gate itself is fully real.
+#
+# c005 folds these services (namespaced) into the unified compose.real.yml.
+# Nothing here is written into ../flint-gate (read-only build context + a
+# smoke-owned config mount).
+#
+# Run standalone:  DOCKER_HOST=<colima> docker compose -f smoke/compose.gate.yml up --build
+
+name: fpa-smoke-gate
+
+services:
+  gate-postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: flintgate
+      POSTGRES_PASSWORD: flintgate
+      POSTGRES_DB: flintgate
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U flintgate -d flintgate"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  flint-gate:
+    build:
+      # gate repo is the context; its own Dockerfile builds the real binary.
+      context: ../../flint-gate
+      dockerfile: Dockerfile
+    depends_on:
+      gate-postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgres://flintgate:flintgate@gate-postgres:5432/flintgate"
+      FLINT_GATE_CONFIG: "/app/config/config.yaml"
+      RUST_LOG: "info,flint_gate=debug"
+    volumes:
+      # smoke-owned config (0.0.0.0 admin bind + anonymous admin_auth), read-only.
+      - ./gate-config/config.smoke.yaml:/app/config/config.yaml:ro
+    ports:
+      - "14456:4456" # proxy  (host 14456)
+      - "14457:4457" # admin  (host 14457)
+    healthcheck:
+      # gate's runtime image has curl; probe the admin /health (unauthenticated probe).
+      test: ["CMD-SHELL", "curl -sf http://localhost:4457/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s

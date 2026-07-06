@@ -1,0 +1,70 @@
+# Smoke-only flint-gate config — authored HERE (consumed by gate's Dockerfile at run
+# time via a read-only mount; NOTHING written into ../flint-gate).
+#
+# Differences from gate's stock config.example.yaml, and WHY:
+#   - server.admin_listen = 0.0.0.0:4457 (not 127.0.0.1): the agent runs in a SEPARATE
+#     container and must reach the admin API over the compose network. A loopback bind
+#     would only accept in-container connections.
+#   - server.admin_auth.provider.type = anonymous: gate REFUSES to start on a
+#     non-loopback admin bind without admin_auth (fail-safe: AdminAuthPosture::RefuseStart).
+#     gate's inbound JWT verifier is JWKS-only (no shared-secret HS256), and standing up
+#     a real JWKS IdP is disproportionate for a health-check hop — so the smoke uses the
+#     `anonymous` provider. This satisfies the Enforce posture (gate boots + admin is
+#     reachable) while requiring no credential. Labeled clearly as smoke-only.
+#   - database.url points at the compose `gate-postgres`.
+#   - a couple of real routes so the agent's `GET /routes` returns non-empty real data.
+#
+# gate runs its own DB migrations at startup (main.rs d.migrate()), so no bootstrap.
+
+server:
+  listen: "0.0.0.0:4456"
+  admin_listen: "0.0.0.0:4457"
+  # Required because admin_listen is non-loopback. `anonymous` = smoke posture only.
+  admin_auth:
+    provider:
+      type: anonymous
+      default_subject: "smoke-admin"
+  tls:
+    enabled: false
+
+database:
+  url: "postgres://flintgate:flintgate@gate-postgres:5432/flintgate"
+  max_connections: 10
+  override_yaml: false
+
+cache:
+  l1:
+    max_capacity: 1000
+    ttl_seconds: 60
+  l2:
+    enabled: false
+  invalidation_channel: "flintgate_config_changed"
+
+auth_providers:
+  passthrough:
+    type: anonymous
+    default_subject: "anonymous"
+
+jwt:
+  signing_algorithm: "HS256"
+  # Smoke throwaway — not a real credential.
+  signing_key_secret: "smoke-hs256-secret-not-a-real-credential"
+  issuer: "https://gate.smoke.local"
+  default_ttl_seconds: 300
+
+sites:
+  - id: "smoke"
+    domains:
+      - "localhost:4456"
+    default_auth: passthrough
+    default_upstream: "http://example.invalid"
+
+routes:
+  - id: "smoke-health"
+    site: "smoke"
+    match:
+      path: "/health"
+      methods: ["GET"]
+    upstream: "http://example.invalid/health"
+    auth: passthrough
+    priority: 100
