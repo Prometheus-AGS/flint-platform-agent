@@ -8,7 +8,7 @@
   "spec_complete": true,
   "plan_complete": true,
   "execute_complete": true,
-  "reflect_complete": false,
+  "reflect_complete": true,
   "changes_total": 6,
   "changes_completed": 6,
   "completed_changes": ["p10-c004-fabric-realtime-client", "p10-c002-real-forge", "p10-c001-real-gate", "p10-c003-real-fabric", "p10-c005-compose-real-and-smoke", "p10-c006-full-pgrx-image"],
