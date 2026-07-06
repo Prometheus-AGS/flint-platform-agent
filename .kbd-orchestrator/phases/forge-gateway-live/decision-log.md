@@ -23,3 +23,11 @@ self-contained + CI-runnable; the real smoke's constraints are infra, not toolin
 ### 2026-07-06 — Blocked: goal 1 (real forge gateway) — flint-forge#7 still open
 All 3 forge bugs present on the live tree; issue OPEN. Gated (--forge-full off), out of
 scope this phase. Ready to flip once forge fixes #7.
+
+### 2026-07-06 — Spec: 3 operator decisions (AskUserQuestion)
+- **CI shape:** stub smoke per-PR + real smoke as opt-in nightly/dispatch. Provenance: user.
+- **Cross-org token:** DEFER — author real-smoke.yml inert (workflow_dispatch only, documented
+  SIBLING_CLONE_TOKEN secret, no schedule). Provenance: user.
+- **Realtime-receipt proof:** DEFER to a focused follow-up phase (not this one). Provenance: user.
+Result: 3 changes — c001 ci-stub-smoke (per-PR), c002 real-smoke-workflow (inert, token-deferred),
+c003 make-readme. G1 real forge gateway remains BLOCKED on flint-forge#7 (out of scope).

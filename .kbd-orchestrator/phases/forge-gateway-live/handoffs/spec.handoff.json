@@ -1,0 +1,11 @@
+{
+  "stage": "spec",
+  "completedAt": "2026-07-06T19:07:03Z",
+  "outputs": [
+    "openspec/changes/p11-c001-ci-stub-smoke/proposal.md"
+  ],
+  "nextStage": "plan",
+  "summaryForNext": "3 changes (all openspec --strict valid; zeespec n/a): c001 ci-stub-smoke (per-PR self-contained stub job), c002 real-smoke-workflow (opt-in workflow_dispatch, token-deferred/inert, defaults non-forge), c003 make-readme (Makefile + smoke/README). Operator decisions: stub-per-PR + opt-in-nightly-real, defer token, defer realtime-receipt. G1 real forge gateway BLOCKED on flint-forge#7.",
+  "skipped": false,
+  "skipReason": null
+}

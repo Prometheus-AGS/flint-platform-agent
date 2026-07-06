@@ -2,14 +2,14 @@
   "phase": "forge-gateway-live",
   "previousPhase": "real-sibling-smoke",
   "change": null,
-  "status": "assessment_ready",
-  "currentTask": "run kbd-assess for forge-gateway-live",
-  "nextPendingChange": null,
+  "status": "plan_pending",
+  "currentTask": "spec done: 3 changes (c001 ci-stub-smoke per-PR, c002 real-smoke-workflow opt-in/token-deferred/inert, c003 make-readme). Operator: stub-per-PR + opt-in-nightly-real, defer token, defer realtime-receipt. G1 real forge gateway BLOCKED on flint-forge#7. Next: order them.",
+  "nextPendingChange": "p11-c001-ci-stub-smoke",
   "sourceTool": "unknown",
-  "exactNextCommand": "/kbd-assess forge-gateway-live",
+  "exactNextCommand": "/kbd-plan forge-gateway-live",
   "recommendedNextPhase": "forge-gateway-live",
   "parentPhase": null,
   "childPhases": [],
   "childPointer": null,
-  "updatedAt": "2026-07-06T18:12:00Z"
+  "updatedAt": "2026-07-06T18:46:00Z"
 }
