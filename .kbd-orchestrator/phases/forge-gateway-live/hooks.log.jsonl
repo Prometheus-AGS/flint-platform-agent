@@ -1,0 +1,2 @@
+{"ts":"2026-07-06T18:12:01Z","kind":"phase","edge":"before","name":"forge-gateway-live","index":1,"total":1,"phasePath":"forge-gateway-live","sourceTool":"unknown","hookId":"report-progress","layer":"builtin","mode":"augment","status":0}
+{"ts":"2026-07-06T18:12:01Z","kind":"phase","edge":"before","name":"forge-gateway-live","index":1,"total":1,"phasePath":"forge-gateway-live","sourceTool":"unknown","hookId":"kbd-memory-log","layer":"builtin","mode":"augment","status":0}

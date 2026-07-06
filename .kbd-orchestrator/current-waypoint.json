@@ -1,15 +1,15 @@
 {
-  "phase": "real-sibling-smoke",
-  "previousPhase": "live-smoke-and-durable-proof",
+  "phase": "forge-gateway-live",
+  "previousPhase": "real-sibling-smoke",
   "change": null,
-  "status": "phase_complete",
-  "currentTask": "PHASE COMPLETE 6/6. Primary goals MET: real gate + fabric + unified smoke 5/5 live-green (smoke.real.spec.ts vs real gate+fabric+agent-PG); EXCEEDED with the fabric subscribe client (c004) + /fabric/subscribe SSE bridge. Forge STRETCH PARTIAL as the goal allowed: PG/bootstrap/fdb-gateway-Dockerfile proven, live gateway boot + pgrx image blocked on forge bugs (dup migrations + .dockerignore) — reported on flint-forge#7. 3 forge bugs surfaced+reported; zero writes into sibling repos; frf-domain vendored. Reflect done.",
+  "status": "assessment_ready",
+  "currentTask": "run kbd-assess for forge-gateway-live",
   "nextPendingChange": null,
   "sourceTool": "unknown",
-  "exactNextCommand": "/kbd-new-phase forge-gateway-live",
+  "exactNextCommand": "/kbd-assess forge-gateway-live",
   "recommendedNextPhase": "forge-gateway-live",
   "parentPhase": null,
   "childPhases": [],
   "childPointer": null,
-  "updatedAt": "2026-07-06T18:10:00Z"
+  "updatedAt": "2026-07-06T18:12:00Z"
 }
