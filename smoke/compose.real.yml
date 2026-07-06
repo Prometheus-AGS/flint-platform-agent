@@ -1,0 +1,228 @@
+# Unified REAL smoke stack — the agent + all three real sibling planes on one network.
+#
+# Consolidates the three proven standalone plane composes (compose.gate.yml,
+# compose.forge.yml, compose.fabric.yml — each verified in isolation) plus the agent,
+# so the smoke drives the agent against REAL gate + real forge + real fabric.
+#
+# Service naming: gate-* / forge-* / fabric-* (no collisions across the three postgres
+# instances). One project network. The agent starts LAST, after every plane is healthy.
+#
+# NOTHING here is written into the sibling repos — every build uses a read-only build
+# context, every sibling-derived config is vendored under smoke/.
+#
+# Run:  smoke/run-real.sh   (exports DOCKER_HOST, up --build --wait, smoke, down -v)
+#
+# NOTE (forge gateway): forge's fdb-gateway boot is BLOCKED on forge's duplicate
+# migration versions (Know-Me-Tools/flint-forge#7) — un-fixable from here. So the unified
+# stack includes the real forge PG + bootstrap (proven), and the agent's FPA_FORGE_URL
+# points at the forge gateway which is included but may not reach healthy until #7 lands.
+# The forge-gateway service is in the `forge-full` profile so the default `up` converges
+# on the planes that boot; enable it with `--profile forge-full` once #7 is fixed.
+
+name: fpa-smoke-real
+
+services:
+  # ─────────────────────────── agent (starts last) ───────────────────────────
+  agent:
+    build:
+      context: ..
+      dockerfile: smoke/Dockerfile
+    depends_on:
+      agent-postgres:
+        condition: service_healthy
+      flint-gate:
+        condition: service_healthy
+      fabric-gateway:
+        condition: service_healthy
+    environment:
+      FPA_GATEWAY_ADDR: "0.0.0.0:8088"
+      # REAL planes:
+      FPA_GATE_ADMIN_URL: "http://flint-gate:4457"
+      FPA_FABRIC_ENDPOINT: "http://fabric-gateway:8080"
+      # forge gateway (see NOTE — blocked on flint-forge#7; points at it regardless).
+      FPA_FORGE_URL: "http://forge-gateway:8080"
+      # agent's own durable ProjectStore:
+      FPA_PROJECT_DB_URL: "postgres://postgres:postgres@agent-postgres:5432/postgres"
+      # throwaway HS256 test secret — NOT a real credential.
+      FPA_GATE_JWT_KEY: "smoke-hs256-secret-not-a-real-credential"
+      RUST_LOG: "info"
+    ports:
+      - "8088:8088"
+    # No container healthcheck: the slim runtime has no curl/bash-/dev/tcp, and the
+    # binary has no --version. run-real.sh polls http://localhost:8088/healthz from the
+    # host once the agent's deps are healthy (matches the phase-9 stub smoke).
+
+  agent-postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  # ─────────────────────────── gate plane (c001, proven) ─────────────────────
+  gate-postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: flintgate
+      POSTGRES_PASSWORD: flintgate
+      POSTGRES_DB: flintgate
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U flintgate -d flintgate"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  flint-gate:
+    build:
+      context: ../../flint-gate
+      dockerfile: Dockerfile
+    depends_on:
+      gate-postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgres://flintgate:flintgate@gate-postgres:5432/flintgate"
+      FLINT_GATE_CONFIG: "/app/config/config.yaml"
+      RUST_LOG: "info,flint_gate=debug"
+    volumes:
+      - ./gate-config/config.smoke.yaml:/app/config/config.yaml:ro
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:4457/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  # ─────────────────────────── fabric plane (c003, proven) ───────────────────
+  fabric-postgres:
+    image: postgres:17-alpine
+    command: postgres -c wal_level=logical -c max_replication_slots=5 -c max_wal_senders=5
+    environment:
+      POSTGRES_USER: frf
+      POSTGRES_PASSWORD: frf
+      POSTGRES_DB: frf
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U frf -d frf"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  fabric-iggy:
+    image: iggyrs/iggy:latest
+    environment:
+      IGGY_SYSTEM_PATH: "/data"
+    volumes:
+      - fabric-iggy-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "iggy --transport tcp --server-address localhost:8090 me 2>/dev/null || exit 0"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  fabric-keto:
+    image: oryd/keto:v0.12
+    volumes:
+      - ./fabric-config/keto.yml:/etc/config/keto/keto.yml:ro
+    command: ["serve", "-c", "/etc/config/keto/keto.yml"]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:4466/health/ready || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  fabric-gateway:
+    build:
+      context: ../../flint-realtime-fabric
+      dockerfile: Dockerfile
+      args:
+        CARGO_FEATURES: dev-endpoints
+    depends_on:
+      fabric-iggy:
+        condition: service_healthy
+      fabric-keto:
+        condition: service_started
+      fabric-postgres:
+        condition: service_healthy
+    environment:
+      BIND_ADDR: "0.0.0.0:8080"
+      GRPC_PORT: "9090"
+      IGGY_CONNECTION_STRING: "iggy://iggy:iggy@fabric-iggy:8090"
+      KETO_BASE_URL: "http://fabric-keto:4466"
+      KETO_NAMESPACE: "default"
+      # Real gate signing-keys endpoint (the agent + fabric share the gate).
+      GATEWAY_JWKS_URL: "http://flint-gate:4457/signing-keys"
+      JWT_AUDIENCE: "frf-gateway"
+      SFU_MODE: "sovereign"
+      RUST_LOG: "info"
+      CDC_ENABLED: "false"
+      DEV_NO_AUTH: "true"
+    ports:
+      - "28080:8080"
+      - "29090:9090"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+      start_period: 40s
+
+  # ─────────────────────────── forge plane (c002) ────────────────────────────
+  # PG + bootstrap PROVEN; forge-gateway BLOCKED on flint-forge#7 (dup migration
+  # versions). Gateway is in the `forge-full` profile so the default run converges.
+  forge-postgres:
+    image: postgres:18-bookworm
+    build:
+      context: ../../flint-forge
+      dockerfile: docker/postgres/Dockerfile
+      args:
+        PGVECTOR_REF: v0.8.4
+        PG_GRAPHQL_REF: v1.6.1
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: flint
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d flint"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  forge-bootstrap:
+    image: postgres:18-bookworm
+    depends_on:
+      forge-postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@forge-postgres:5432/flint
+      BOOTSTRAP_DIR: /bootstrap
+    volumes:
+      - ./forge-bootstrap:/bootstrap:ro
+    entrypoint: ["/bin/sh", "/bootstrap/apply.sh"]
+    restart: "no"
+
+  forge-gateway:
+    profiles: ["forge-full"] # blocked on flint-forge#7 — off by default
+    build:
+      context: ../../flint-forge
+      dockerfile: ../flint-platform-agent/smoke/fdb-gateway.Dockerfile
+    depends_on:
+      forge-bootstrap:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@forge-postgres:5432/flint
+      KETO_BASE_URL: http://fabric-keto:4466
+      RUST_LOG: info
+    ports:
+      - "18080:8080"
+
+volumes:
+  fabric-iggy-data:

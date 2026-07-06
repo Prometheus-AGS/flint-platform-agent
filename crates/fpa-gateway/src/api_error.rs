@@ -46,6 +46,10 @@ impl ApiError {
     pub fn conflict(m: impl Into<String>) -> Self {
         Self::new(StatusCode::CONFLICT, m)
     }
+    /// 502 Bad Gateway — a downstream plane failed.
+    pub fn bad_gateway(m: impl Into<String>) -> Self {
+        Self::new(StatusCode::BAD_GATEWAY, m)
+    }
 }
 
 impl IntoResponse for ApiError {

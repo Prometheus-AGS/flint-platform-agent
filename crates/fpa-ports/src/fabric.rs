@@ -14,9 +14,9 @@ use async_trait::async_trait;
 use futures::stream::BoxStream;
 use uuid::Uuid;
 
-/// The fabric's stamped event envelope — re-exported so the app layer and the
-/// adapter share exactly one type.
-pub use frf_domain::EventEnvelope;
+/// The fabric's stamped event envelope + its payload-kind discriminant —
+/// re-exported so the app layer and the adapter share exactly one type.
+pub use frf_domain::{EventEnvelope, EventKind};
 
 /// A stream of fabric events as they arrive over a subscription. Each item is a
 /// decoded [`EventEnvelope`] or the [`PortError`] that ended the stream.

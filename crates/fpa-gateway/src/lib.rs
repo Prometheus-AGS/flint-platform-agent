@@ -33,5 +33,6 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .merge(routes::agui::router())
         .merge(routes::a2a::router())
         .merge(routes::mcp::router())
+        .merge(routes::fabric::router())
         .with_state(state)
 }

@@ -13,7 +13,7 @@ pub mod mcp;
 pub mod project_store;
 
 pub use error::PortError;
-pub use fabric::{EventEnvelope, EventStream, FabricClient};
+pub use fabric::{EventEnvelope, EventKind, EventStream, FabricClient};
 pub use forge::ForgeMetadata;
 pub use gate::GateAdmin;
 pub use mcp::McpClient;

@@ -54,10 +54,13 @@ uuid = { version = "1", features = ["v4", "serde"] }
 # feature (KISS; avoids native-tls/openssl feature unification). Verified 2026-07-04.
 tokio-tungstenite = "0.29"
 
-# --- sibling path deps (cross-repo, local smoke only — not portable; see p10-c004) ---
+# --- vendored fabric domain types (self-contained; makes the agent repo portable) ---
 # frf-domain: the fabric's PURE domain types (serde/uuid/chrono only, no prost/tonic).
 # We reuse EventEnvelope — the real /ws/v1/subscribe wire type — per Base Rule 12.
-frf-domain = { path = "../flint-realtime-fabric/crates/frf-domain" }
+# VENDORED under vendor/ (was ../flint-realtime-fabric/... — a cross-repo path dep that
+# broke the containerized agent build, whose Docker context is this repo only). Re-sync
+# from fabric if its EventEnvelope schema changes. See vendor/frf-domain/Cargo.toml.
+frf-domain = { path = "vendor/frf-domain" }
 
 # --- internal crates ---
 fpa-domain = { path = "crates/fpa-domain" }

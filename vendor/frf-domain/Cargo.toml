@@ -1,0 +1,32 @@
+# VENDORED COPY of flint-realtime-fabric/crates/frf-domain (the fabric's PURE domain
+# types — EventEnvelope/EventKind/Channel/ids, serde/uuid/chrono only, no prost/tonic).
+#
+# WHY vendored: fpa-ports/fpa-fabric reuse frf-domain::EventEnvelope (the real
+# /ws/v1/subscribe wire type — p10-c004). A cross-repo path dep
+# (../flint-realtime-fabric/crates/frf-domain) breaks the containerized agent build,
+# whose Docker context is this repo only. Vendoring makes the agent self-contained
+# (Base Rule 36/37 portability) and is the bridge c004 flagged pending a PUBLISHED
+# frf-domain crate. Versions are pinned explicitly (not workspace-inherited) so the
+# crate builds identically under either workspace.
+#
+# Re-sync from fabric if its EventEnvelope schema changes; keep in step with
+# smoke/fabric-config and the fabric-subscribe wire contract.
+
+[package]
+name = "frf-domain"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "MIT"
+description = "Pure domain types for Flint Realtime Fabric — vendored (serde only)"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+uuid = { version = "1", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+
+# NOTE: no `[lints] workspace = true` — the vendored crate carries its own lint
+# attributes (`#![deny(warnings)]` / `clippy::pedantic` in lib.rs), matching how it
+# builds in fabric. It is not an agent workspace member (members is an explicit list),
+# so it must not inherit the agent's lint table.
