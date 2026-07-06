@@ -7,18 +7,19 @@
   "analyze_complete": true,
   "spec_complete": true,
   "plan_complete": true,
-  "execute_complete": false,
+  "execute_complete": true,
   "reflect_complete": false,
   "changes_total": 6,
-  "changes_completed": 5,
-  "completed_changes": ["p10-c004-fabric-realtime-client", "p10-c002-real-forge", "p10-c001-real-gate", "p10-c003-real-fabric", "p10-c005-compose-real-and-smoke"],
+  "changes_completed": 6,
+  "completed_changes": ["p10-c004-fabric-realtime-client", "p10-c002-real-forge", "p10-c001-real-gate", "p10-c003-real-fabric", "p10-c005-compose-real-and-smoke", "p10-c006-full-pgrx-image"],
   "active_change": null,
   "blocked_changes": [],
   "partial_changes": {
-    "p10-c002-real-forge": "PG plane + bootstrap + gateway-build PROVEN; live gateway boot DEFERRED to best-effort (forge dup-migration-version bug) — filed Know-Me-Tools/flint-forge#7"
+    "p10-c002-real-forge": "PG plane + bootstrap + gateway-build PROVEN; live gateway boot DEFERRED to best-effort (forge dup-migration-version bug) — filed Know-Me-Tools/flint-forge#7",
+    "p10-c006-full-pgrx-image": "compose.pgrx.yml authored + validated; BUILD blocked on forge bug (.dockerignore excludes images/ that the pgrx Dockerfile COPYs) — reported on flint-forge#7. Best-effort, off the green path."
   },
   "sourceTool": "unknown",
-  "nextPendingChange": "p10-c006-full-pgrx-image",
+  "nextPendingChange": null,
   "createdBy": "kbd-next-phase",
-  "updatedAt": "2026-07-06T17:40:00Z"
+  "updatedAt": "2026-07-06T18:00:00Z"
 }

@@ -30,10 +30,23 @@ those features.** Forge's `images/postgres18/Dockerfile` builds the heavy pgrx s
   `images/postgres18/Dockerfile` (do not fork it — Base Rule 3, reference it). Heavy
   build; opt-in. No agent Rust change.
 
-## Open Questions
-- **Build feasibility on the dev VM** — the pgrx image is the heaviest build in the
-  phase; if it OOMs/times out, record the ceiling and leave it as a documented
-  best-effort (the CI image remains the converging path). Base Rule 40: don't expand
-  past the goal chasing it.
-- **Extension usage by the smoke** — this change only proves the image *builds/loads*;
-  exercising `flint_llm` etc. end-to-end is a later phase, not here.
+## Execute outcome (2026-07-06) — best-effort, blocked upstream (documented)
+
+`smoke/compose.pgrx.yml` authored + validated (references forge's own
+`images/postgres18/Dockerfile`, no fork). The time-boxed build **did not even reach the
+OOM ceiling** — it fails on a **forge bug**: forge's `.dockerignore` excludes `images/`,
+yet `images/postgres18/Dockerfile` COPYs from `images/postgres18/{extensions,init,
+init-baseline}/`, so those files are never in the build context (`COPY … 99-assert.sql:
+not found`). The image is unbuildable from the forge repo as configured (the CI image
+built fine because it has zero `COPY images/` lines).
+
+Per Base Rule 40 (don't chase past the goal) + the established "read-only consumption of
+siblings" discipline: did NOT fork forge's Dockerfile or edit forge's in-flight
+`.dockerignore`. Appended the finding to **Know-Me-Tools/flint-forge#7** (with the fix:
+narrow the ignore / add negations for the paths the pgrx Dockerfile needs). The CI image
+(c002) remains the converging path; nothing on the green path depends on this.
+
+## Resolved
+- Build feasibility: blocked on a forge config bug (not an OOM); reported upstream. The
+  smoke-side artifact is done + validated. Exercising `flint_llm` end-to-end remains a
+  later phase.

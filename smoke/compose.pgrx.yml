@@ -1,0 +1,42 @@
+# Best-effort, OPT-IN: forge's FULL pgrx PG-18 image (the heavy Anvil data plane).
+#
+# This is NOT part of the converging real smoke (that uses forge's CI PG image in c002).
+# It proves forge's heavy extension stack BUILDS + boots: flint_llm (pgrx 0.18.1),
+# pg_net + pg_cron (C from source), pgvector (apt), flint_auth/flint_hooks (SQL). It has
+# NO pg_graphql (forge defers it — supabase/pg_graphql#614, no PG18 release; the same gap
+# behind Know-Me-Tools/flint-forge#7).
+#
+# WEIGHT WARNING — the heaviest build in the phase. The `anvil` stage runs
+# `cargo pgrx init --pg18` (which COMPILES Postgres from source) + `cargo install
+# cargo-pgrx` + `cargo pgrx package`, on rust:1.96, plus two C extension builds. On the
+# 12 GiB colima VM this is at/over the ceiling. Build it ALONE, never alongside other
+# heavy builds. If it OOMs/times out, that's a documented ceiling — the CI image (c002)
+# is the converging path (Base Rule 40: do not chase this past the goal).
+#
+# Read-only consumption of ../flint-forge (build context = forge root); references
+# forge's own images/postgres18/Dockerfile (do not fork). Nothing written into forge.
+#
+# Opt-in run:
+#   DOCKER_HOST=<colima> docker compose -f smoke/compose.pgrx.yml up --build --wait
+
+name: fpa-smoke-pgrx
+
+services:
+  forge-pgrx-postgres:
+    build:
+      # forge repo root is the context; forge's OWN full pgrx Dockerfile.
+      context: ../../flint-forge
+      dockerfile: images/postgres18/Dockerfile
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    # The image's CMD already sets shared_preload_libraries=pg_net,pg_cron,ext_flint_llm
+    # + wal_level=logical + cron.database_name — do NOT override it here.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
+    ports:
+      - "25432:5432" # host 25432 → pgrx PG 5432 (avoid clashes with other PG instances)

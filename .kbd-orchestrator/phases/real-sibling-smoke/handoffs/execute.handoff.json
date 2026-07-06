@@ -1,12 +1,12 @@
 {
   "stage": "execute",
-  "completedAt": "2026-07-04T17:49:18Z",
+  "completedAt": "2026-07-06T17:58:22Z",
   "outputs": [
     "execution.md",
     "progress.json"
   ],
   "nextStage": "reflect",
-  "summaryForNext": "backend=openspec. c004 fabric-realtime-client DONE + proven: FabricClient::subscribe over /ws/v1/subscribe yielding frf-domain::EventEnvelope (real wire type — corrected from ContentBlock at grounding), tokio-tungstenite 0.29 client in fpa-fabric, frf-domain path dep. cargo check+clippy(-D warnings)+fmt green; 6/6 fpa-fabric unit tests pass incl. a live fake-WS decode round-trip. 1/6 changes done. Next pending: c002 real-forge (author fdb-gateway Dockerfile).",
+  "summaryForNext": "All 6 changes done. c004 subscribe client (unit-proven), c001 gate + c003 fabric + c005 unified smoke ALL live-green (smoke.real.spec.ts 5/5 against real gate+fabric+agent-PG). c002 forge PG/bootstrap/gateway-build proven, live gateway boot deferred (forge dup-migration bug, filed flint-forge#7). c006 pgrx best-effort, build blocked on forge .dockerignore bug (reported on #7). 3 forge bugs surfaced + reported; nothing written into sibling repos; frf-domain vendored for portable build.",
   "skipped": false,
   "skipReason": null
 }
