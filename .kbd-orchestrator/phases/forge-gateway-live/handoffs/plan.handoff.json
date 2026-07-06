@@ -1,0 +1,11 @@
+{
+  "stage": "plan",
+  "completedAt": "2026-07-06T19:11:10Z",
+  "outputs": [
+    "plan.md"
+  ],
+  "nextStage": "execute",
+  "summaryForNext": "3 independent low-risk CI/docs changes ordered value-first: (1) c001 ci-stub-smoke [per-PR guard, the one live-CI proof], (2) c003 make-readme [Makefile + README doc the whole smoke surface], (3) c002 real-smoke-workflow [inert/token-deferred, honestly ships un-run until SIBLING_CLONE_TOKEN is added]. Goal 1 real forge gateway BLOCKED on flint-forge#7 (out of scope, --forge-full-gated). No agent Rust change; Rust CI stays green. First: c001.",
+  "skipped": false,
+  "skipReason": null
+}

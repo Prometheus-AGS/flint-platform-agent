@@ -2,14 +2,14 @@
   "phase": "forge-gateway-live",
   "previousPhase": "real-sibling-smoke",
   "change": null,
-  "status": "plan_pending",
-  "currentTask": "spec done: 3 changes (c001 ci-stub-smoke per-PR, c002 real-smoke-workflow opt-in/token-deferred/inert, c003 make-readme). Operator: stub-per-PR + opt-in-nightly-real, defer token, defer realtime-receipt. G1 real forge gateway BLOCKED on flint-forge#7. Next: order them.",
+  "status": "execute_pending",
+  "currentTask": "plan done: 3 CI/docs changes ordered value-first (all independent, low-risk) \u2014 (1) c001 ci-stub-smoke [per-PR guard, live CI], (2) c003 make-readme [docs the whole smoke surface], (3) c002 real-smoke-workflow [inert/token-deferred]. Goal 1 real forge gateway BLOCKED on flint-forge#7 (out of scope). No agent Rust change. Next: execute c001.",
   "nextPendingChange": "p11-c001-ci-stub-smoke",
   "sourceTool": "unknown",
-  "exactNextCommand": "/kbd-plan forge-gateway-live",
+  "exactNextCommand": "/kbd-execute forge-gateway-live",
   "recommendedNextPhase": "forge-gateway-live",
   "parentPhase": null,
   "childPhases": [],
   "childPointer": null,
-  "updatedAt": "2026-07-06T18:46:00Z"
+  "updatedAt": "2026-07-06T18:52:00Z"
 }
