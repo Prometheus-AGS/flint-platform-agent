@@ -1,0 +1,11 @@
+{
+  "stage": "assess",
+  "completedAt": "2026-07-07T02:00:48Z",
+  "outputs": [
+    "assessment.md"
+  ],
+  "nextStage": "analyze",
+  "summaryForNext": "Both grounding questions answered from live fabric code. Dev IdP = static RSA JWKS (Option a: pre-generated key pair, JWKS served in compose). Keto: no wildcard — 2 exact tuple seeds (subscribe+view) with deterministic envelope id chosen by the smoke before publish. Required JWT claims: sub, tenant_id (UUID), aud=frf-gateway, exp. session_id/jti optional (generates fresh UUID if absent). MISSING: Keto write port :4467 not exposed to host in either fabric compose — needs a port mapping. No agent Rust change; pure smoke composition + spec update.",
+  "skipped": false,
+  "skipReason": null
+}
