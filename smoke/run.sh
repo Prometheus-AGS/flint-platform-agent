@@ -45,7 +45,9 @@ say "Installing Playwright smoke deps (smoke/)"
 ( cd "$HERE" && npm install --silent ) || die "npm install failed"
 
 say "Running the Playwright smoke against the live agent"
-if ( cd "$HERE" && npm test ); then
+# Pass smoke.spec.ts explicitly so the stub runner never accidentally picks up
+# smoke.real.spec.ts (which needs the real-sibling stack).
+if ( cd "$HERE" && npx playwright test smoke.spec.ts ); then
   printf '\n\033[1;32m✔ LIVE SMOKE PASSED against the containerized agent.\033[0m\n'
 else
   die "live smoke FAILED — see the Playwright output above"

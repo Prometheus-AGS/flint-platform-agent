@@ -1,0 +1,12 @@
+{
+  "stage": "execute",
+  "completedAt": "2026-07-07T00:30:13Z",
+  "outputs": [
+    "execution.md",
+    "progress.json"
+  ],
+  "nextStage": "reflect",
+  "summaryForNext": "All 3 changes done. c001 ci-stub-smoke: smoke job in ci.yml, local stub smoke 6/6 PASSED (smoke.spec.ts explicit filter; no browser install). c002 real-smoke-workflow: .github/workflows/real-smoke.yml authored + inert (dispatch-only, SIBLING_CLONE_TOKEN not set, schedule commented, fail-fast guard, forge_full input). c003 make-readme: Makefile (smoke/smoke-real/smoke-real-nobuild/smoke-real-forge + help) + smoke/README rewritten. execute_complete=true.",
+  "skipped": false,
+  "skipReason": null
+}

@@ -53,3 +53,21 @@ jobs:
           components: rustfmt, clippy
       - name: cargo check (MSRV)
         run: cargo check --workspace
+
+  smoke:
+    name: Stub smoke (self-contained)
+    runs-on: ubuntu-latest
+    # Guards the agent's RUNTIME wiring (boot + protocol-surface HTTP hops), not just the
+    # Rust build. Uses the self-contained stub stack (agent + postgres + wiremock) — NO
+    # sibling repos, NO secrets. The agent builds from this repo alone (frf-domain is
+    # vendored under vendor/). ubuntu-latest ships Docker + Compose v2 + Node.
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      # smoke/run.sh: docker check -> compose up --build -> wait /healthz -> npm install
+      # (no browsers, HTTP-only) -> npm test -> `down -v` on trap. Dies non-zero on fail.
+      - name: Run the stub smoke
+        run: ./smoke/run.sh

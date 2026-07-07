@@ -1,0 +1,96 @@
+# Real-sibling smoke — opt-in, INERT until SIBLING_CLONE_TOKEN is provisioned.
+#
+# Runs the full real-sibling smoke (agent + real flint-gate + real flint-realtime-fabric)
+# by cloning the sibling repos at pinned refs and calling smoke/run-real.sh.
+#
+# ENABLING:
+#   1. Add a repo secret SIBLING_CLONE_TOKEN — a PAT or GitHub App token with read access
+#      to Prometheus-AGS/flint-realtime-fabric, Know-Me-Tools/flint-gate, and
+#      Know-Me-Tools/flint-forge (cross-org; GITHUB_TOKEN won't reach Know-Me-Tools).
+#   2. Uncomment the `schedule:` block below to enable the nightly run.
+#   See smoke/README.md → "Enabling the nightly real smoke" for details.
+#
+# Until SIBLING_CLONE_TOKEN is set this workflow is SAFE TO DISPATCH — it fails fast
+# with a clear error pointing here, before any clone or build happens.
+
+name: Real-sibling smoke (opt-in)
+
+on:
+  workflow_dispatch:
+    inputs:
+      forge_full:
+        description: "Include forge gateway (--forge-full; needs flint-forge#7 fixed)"
+        required: false
+        default: "false"
+        type: boolean
+
+  # Uncomment when SIBLING_CLONE_TOKEN is provisioned to enable nightly runs.
+  # schedule:
+  #   - cron: "0 3 * * *"   # 03:00 UTC daily
+
+env:
+  # Pinned sibling refs (bump when the proven-green commit advances).
+  FABRIC_REF: "1aaab3d"  # Prometheus-AGS/flint-realtime-fabric
+  GATE_REF:   "0f4aacb"  # Know-Me-Tools/flint-gate
+  FORGE_REF:  "8c7955c"  # Know-Me-Tools/flint-forge
+
+jobs:
+  real-smoke:
+    name: Real-sibling smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 60  # heavy: clone + image builds + 8-service boot + smoke
+
+    steps:
+      - name: Fail fast — SIBLING_CLONE_TOKEN not set
+        if: ${{ secrets.SIBLING_CLONE_TOKEN == '' }}
+        run: |
+          echo "::error::SIBLING_CLONE_TOKEN is not set."
+          echo "::error::This workflow needs a cross-org token to clone Know-Me-Tools/{flint-gate,flint-forge}."
+          echo "::error::See smoke/README.md → 'Enabling the nightly real smoke' for setup instructions."
+          exit 1
+
+      - uses: actions/checkout@v4
+        with:
+          path: flint-platform-agent
+
+      - name: Clone flint-realtime-fabric @ ${{ env.FABRIC_REF }}
+        uses: actions/checkout@v4
+        with:
+          repository: Prometheus-AGS/flint-realtime-fabric
+          ref: ${{ env.FABRIC_REF }}
+          token: ${{ secrets.SIBLING_CLONE_TOKEN }}
+          path: flint-realtime-fabric
+
+      - name: Clone flint-gate @ ${{ env.GATE_REF }}
+        uses: actions/checkout@v4
+        with:
+          repository: Know-Me-Tools/flint-gate
+          ref: ${{ env.GATE_REF }}
+          token: ${{ secrets.SIBLING_CLONE_TOKEN }}
+          path: flint-gate
+
+      - name: Clone flint-forge @ ${{ env.FORGE_REF }}
+        uses: actions/checkout@v4
+        with:
+          repository: Know-Me-Tools/flint-forge
+          ref: ${{ env.FORGE_REF }}
+          token: ${{ secrets.SIBLING_CLONE_TOKEN }}
+          path: flint-forge
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Build + run real-sibling smoke (serial builds, then boot)
+        working-directory: flint-platform-agent
+        run: |
+          # On a fresh CI runner images must be built. run-real.sh builds serially
+          # (one at a time) to avoid the concurrent-compile OOM observed on 12 GiB VMs.
+          # The runner is 7 GiB RAM — serial is the only viable path; timeout-minutes=60.
+          ARGS=""
+          if [ "${{ inputs.forge_full }}" = "true" ]; then
+            ARGS="--forge-full"
+          fi
+          # Siblings are checked out at ../../{flint-gate,…} relative to this working dir,
+          # matching the ../flint-gate path the compose files expect.
+          ./smoke/run-real.sh $ARGS
