@@ -1,0 +1,11 @@
+{
+  "stage": "plan",
+  "completedAt": "2026-07-07T02:24:57Z",
+  "outputs": [
+    "plan.md"
+  ],
+  "nextStage": "execute",
+  "summaryForNext": "3 dependency-ordered changes (all --strict valid, analyze skipped): (1) c001 dev-idp-keys [RSA keygen + static JWKS; offline, no Docker], (2) c002 compose-dev-idp [JWKS server + GATEWAY_JWKS_URL + Keto :4467 port; small compose edits], (3) c003 realtime-receipt-spec [the receipt proof: dev bearer + 2 Keto seeds + subscribe + publish + assert SSE — the integration milestone, a full run wait]. First: c001.",
+  "skipped": false,
+  "skipReason": null
+}

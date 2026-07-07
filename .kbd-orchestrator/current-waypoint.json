@@ -2,14 +2,14 @@
   "phase": "realtime-receipt",
   "previousPhase": "forge-gateway-live",
   "change": null,
-  "status": "assessment_ready",
-  "currentTask": "run kbd-assess for realtime-receipt",
-  "nextPendingChange": null,
+  "status": "execute_pending",
+  "currentTask": "plan done: 3 dependency-ordered changes \u2014 (1) c001 dev-idp-keys [RSA keygen + JWKS, offline], (2) c002 compose-dev-idp [wire JWKS server + Keto port], (3) c003 realtime-receipt-spec [the integration milestone]. No agent Rust change. First: c001.",
+  "nextPendingChange": "p12-c001-dev-idp-keys",
   "sourceTool": "unknown",
-  "exactNextCommand": "/kbd-assess realtime-receipt",
+  "exactNextCommand": "/kbd-execute realtime-receipt",
   "recommendedNextPhase": "realtime-receipt",
   "parentPhase": null,
   "childPhases": [],
   "childPointer": null,
-  "updatedAt": "2026-07-07T01:19:04Z"
+  "updatedAt": "2026-07-06T19:50:00Z"
 }
