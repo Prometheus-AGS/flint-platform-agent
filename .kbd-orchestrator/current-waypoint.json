@@ -1,15 +1,15 @@
 {
-  "phase": "forge-gateway-live",
-  "previousPhase": "real-sibling-smoke",
+  "phase": "realtime-receipt",
+  "previousPhase": "forge-gateway-live",
   "change": null,
-  "status": "phase_complete",
-  "currentTask": "PHASE COMPLETE 3/3. Goals 2+3 MET (CI stub smoke per-PR, opt-in real workflow, Makefile+README). Goal 1 gated on flint-forge#7. Latent npm-test ambiguity fixed. Next: /kbd-new-phase realtime-receipt or forge-gateway-boot.",
-  "nextPendingChange": "p11-c001-ci-stub-smoke",
+  "status": "assessment_ready",
+  "currentTask": "run kbd-assess for realtime-receipt",
+  "nextPendingChange": null,
   "sourceTool": "unknown",
-  "exactNextCommand": "/kbd-new-phase realtime-receipt",
+  "exactNextCommand": "/kbd-assess realtime-receipt",
   "recommendedNextPhase": "realtime-receipt",
   "parentPhase": null,
   "childPhases": [],
   "childPointer": null,
-  "updatedAt": "2026-07-06T19:22:00Z"
+  "updatedAt": "2026-07-07T01:19:04Z"
 }
