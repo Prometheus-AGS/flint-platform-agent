@@ -2,14 +2,14 @@
   "phase": "forge-gateway-live",
   "previousPhase": "real-sibling-smoke",
   "change": null,
-  "status": "reflect_pending",
-  "currentTask": "execute done: 3 changes shipped (c001 ci-stub-smoke 6/6 green, c002 real-smoke-workflow inert/token-deferred, c003 make-readme). Rust CI green. Real forge gateway still BLOCKED on flint-forge#7. Next: /kbd-reflect.",
+  "status": "phase_complete",
+  "currentTask": "PHASE COMPLETE 3/3. Goals 2+3 MET (CI stub smoke per-PR, opt-in real workflow, Makefile+README). Goal 1 gated on flint-forge#7. Latent npm-test ambiguity fixed. Next: /kbd-new-phase realtime-receipt or forge-gateway-boot.",
   "nextPendingChange": "p11-c001-ci-stub-smoke",
   "sourceTool": "unknown",
-  "exactNextCommand": "/kbd-reflect forge-gateway-live",
-  "recommendedNextPhase": "forge-gateway-live",
+  "exactNextCommand": "/kbd-new-phase realtime-receipt",
+  "recommendedNextPhase": "realtime-receipt",
   "parentPhase": null,
   "childPhases": [],
   "childPointer": null,
-  "updatedAt": "2026-07-06T19:15:00Z"
+  "updatedAt": "2026-07-06T19:22:00Z"
 }
