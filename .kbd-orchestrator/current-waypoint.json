@@ -2,14 +2,14 @@
   "phase": "realtime-receipt",
   "previousPhase": "forge-gateway-live",
   "change": null,
-  "status": "reflect_pending",
-  "currentTask": "execute done: 3/3 changes. c001 dev-idp-keys + c002 compose-dev-idp fully complete; c003 realtime-receipt-spec implemented, verified 4/5 real smoke green with the receipt test test.fixme-blocked on upstream Prometheus-AGS/flint-realtime-fabric#2 (broker subscribe/publish stream-name divergence). See smoke/KNOWN-ISSUES.md.",
+  "status": "reflect_complete",
+  "currentTask": "Phase realtime-receipt complete-with-documented-upstream-block: 2 MET / 1 PARTIAL. Receipt blocked on Prometheus-AGS/flint-realtime-fabric#2. Committed+pushed on feat/p12-realtime-receipt.",
   "nextPendingChange": null,
   "sourceTool": "unknown",
-  "exactNextCommand": "/kbd-reflect realtime-receipt",
-  "recommendedNextPhase": "realtime-receipt",
+  "exactNextCommand": "/kbd-next-phase",
+  "recommendedNextPhase": "realtime-receipt-unblock",
   "parentPhase": null,
   "childPhases": [],
   "childPointer": null,
-  "updatedAt": "2026-07-08T00:00:00Z"
+  "updatedAt": "2026-07-08T08:10:00Z"
 }
