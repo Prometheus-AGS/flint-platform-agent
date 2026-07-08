@@ -1,0 +1,12 @@
+{
+  "stage": "execute",
+  "completedAt": "2026-07-08T08:02:46Z",
+  "outputs": [
+    "execution.md",
+    "progress.json"
+  ],
+  "nextStage": "reflect",
+  "summaryForNext": "Execute complete: 3/3 changes on the openspec backend. c001 dev-idp-keys (RSA+JWKS) and c002 compose-dev-idp (JWKS server + Keto host ports, both composes) fully done. c003 realtime-receipt-spec implemented; verified 4/5 real smoke green (agent health, auth-reject, fabric.health, project CRUD) with the receipt test test.fixme-blocked on upstream Prometheus-AGS/flint-realtime-fabric#2 (frf-broker-iggy subscribe/publish stream-name divergence). Agent side proven correct; documented in smoke/KNOWN-ISSUES.md. Next: /kbd-reflect realtime-receipt.",
+  "skipped": false,
+  "skipReason": null
+}

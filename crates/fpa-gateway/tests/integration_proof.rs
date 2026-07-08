@@ -77,6 +77,8 @@ fn test_config(forge: &str, gate: &str, fabric: &str) -> GatewayConfig {
         // No DB URL → the in-memory ProjectStore (the durable path is proven in
         // fpa-store-pg's own #[ignore]d testcontainers test).
         project_db_url: None,
+        // No fabric bearer override → the bridge forwards the operator's bearer.
+        fabric_bearer: None,
     }
 }
 

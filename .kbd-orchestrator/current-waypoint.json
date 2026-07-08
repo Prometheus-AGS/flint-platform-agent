@@ -2,14 +2,14 @@
   "phase": "realtime-receipt",
   "previousPhase": "forge-gateway-live",
   "change": null,
-  "status": "execute_pending",
-  "currentTask": "plan done: 3 dependency-ordered changes \u2014 (1) c001 dev-idp-keys [RSA keygen + JWKS, offline], (2) c002 compose-dev-idp [wire JWKS server + Keto port], (3) c003 realtime-receipt-spec [the integration milestone]. No agent Rust change. First: c001.",
-  "nextPendingChange": "p12-c001-dev-idp-keys",
+  "status": "reflect_pending",
+  "currentTask": "execute done: 3/3 changes. c001 dev-idp-keys + c002 compose-dev-idp fully complete; c003 realtime-receipt-spec implemented, verified 4/5 real smoke green with the receipt test test.fixme-blocked on upstream Prometheus-AGS/flint-realtime-fabric#2 (broker subscribe/publish stream-name divergence). See smoke/KNOWN-ISSUES.md.",
+  "nextPendingChange": null,
   "sourceTool": "unknown",
-  "exactNextCommand": "/kbd-execute realtime-receipt",
+  "exactNextCommand": "/kbd-reflect realtime-receipt",
   "recommendedNextPhase": "realtime-receipt",
   "parentPhase": null,
   "childPhases": [],
   "childPointer": null,
-  "updatedAt": "2026-07-06T19:50:00Z"
+  "updatedAt": "2026-07-08T00:00:00Z"
 }

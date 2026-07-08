@@ -5,15 +5,19 @@
   "childPointer": null,
   "assessment_complete": true,
   "plan_complete": true,
-  "execute_complete": false,
+  "execute_complete": true,
   "reflect_complete": false,
   "changes_total": 3,
-  "changes_completed": 0,
-  "completed_changes": [],
+  "changes_completed": 3,
+  "completed_changes": [
+    "p12-c001-dev-idp-keys",
+    "p12-c002-compose-dev-idp",
+    "p12-c003-realtime-receipt-spec"
+  ],
   "active_change": null,
   "blocked_changes": [],
   "sourceTool": "unknown",
   "createdBy": "kbd-new-phase",
-  "updatedAt": "2026-07-06T19:50:00Z",
-  "nextPendingChange": "p12-c001-dev-idp-keys"
+  "updatedAt": "2026-07-08T00:00:00Z",
+  "nextPendingChange": null
 }

@@ -37,19 +37,26 @@ pub fn router() -> Router<Arc<AppState>> {
 
 /// `GET /fabric/subscribe?channel=<uuid>` — stream fabric events as SSE.
 ///
-/// Requires an authenticated operator; the raw gate-minted bearer is forwarded to
-/// the fabric gateway (which enforces its own subscribe authz). Each
-/// `EventEnvelope` is emitted as an SSE frame named by its `kind`. A subscription
-/// that fails to connect returns an error before the stream opens.
+/// Requires an authenticated operator. The bearer forwarded to the fabric gateway
+/// (which enforces its own subscribe authz) is the configured `FPA_FABRIC_BEARER`
+/// when set — for deployments where fabric verifies against a different IdP than
+/// the one that authenticated the operator — otherwise the operator's own bearer.
+/// Each `EventEnvelope` is emitted as an SSE frame named by its `kind`. A
+/// subscription that fails to connect returns an error before the stream opens.
 async fn subscribe(
     operator: OperatorContext,
     State(state): State<Arc<AppState>>,
     Query(params): Query<SubscribeParams>,
 ) -> Result<Sse<impl Stream<Item = Result<Event, Infallible>>>, ApiError> {
+    let fabric_bearer = state
+        .config
+        .fabric_bearer
+        .as_deref()
+        .unwrap_or(&operator.bearer);
     let stream = state
         .runner
         .fabric
-        .subscribe(params.channel, Some(&operator.bearer))
+        .subscribe(params.channel, Some(fabric_bearer))
         .await
         .map_err(|e| map_port_error(&e))?;
 

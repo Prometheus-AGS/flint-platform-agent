@@ -60,6 +60,19 @@ for svc in "${BUILD_SVCS[@]}"; do
   }
 done
 
+# Mint the RS256 bearer the agent forwards to fabric (FPA_FABRIC_BEARER). Fabric
+# verifies RS256 against the dev JWKS; the agent authenticates the operator by HS256
+# (a different IdP), so the operator's bearer isn't forwardable — the bridge forwards
+# THIS one instead (p12-c003). Needs jsonwebtoken, which lives in node_modules.
+if [[ ! -d node_modules ]]; then
+  echo "==> installing smoke deps (needed to mint the fabric bearer)"
+  npm install --silent
+fi
+echo "==> minting the RS256 fabric bearer for FPA_FABRIC_BEARER"
+FPA_FABRIC_BEARER="$(node dev-idp/mint-fabric-bearer.mjs)"
+export FPA_FABRIC_BEARER
+[[ -n "$FPA_FABRIC_BEARER" ]] || { echo "!! failed to mint FPA_FABRIC_BEARER"; exit 1; }
+
 echo "==> starting the real stack (images pre-built; --wait for plane health)"
 "${COMPOSE[@]}" "${PROFILE_ARGS[@]}" up --wait --wait-timeout 600
 

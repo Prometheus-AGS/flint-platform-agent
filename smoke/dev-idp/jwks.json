@@ -1,0 +1,12 @@
+{
+  "keys": [
+    {
+      "kty": "RSA",
+      "use": "sig",
+      "alg": "RS256",
+      "kid": "dev-smoke-key-1",
+      "n": "lrz_AK_7RBo9zEJDnuXp2-eCThTxQUQPk9TU0oF8aAPVhdzXwofYtr8k_8KWk2YS98ZlJHoBxWpnSLXdcKxHUhK7QbFXf1ip6Vu4yZlazZbzi_es8SsUmxczn2pxRhmnHRLPAqoXD5Nn75NM05xPZ4PBBoT6ZK_SR4DV0bM39jXqBBunX2y-CE0QxNYJj6zdRaM2kaCO6Nv2lHFDgQFS5S9rYteB9xeSF7BEA4_bqJr8a8RF1kYDH-qSblLGhEBH7vnI8_wSLWqhnRQIfilxgXVp72mJvPkojNxUb7jlP1nJ4KIXk3ALskl5IYgtuEOIcDprn9bM5x0pLeiH6uko5Q",
+      "e": "AQAB"
+    }
+  ]
+}

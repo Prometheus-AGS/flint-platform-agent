@@ -42,6 +42,14 @@ const ENV_GATE_ADMIN_TOKEN: &str = "FPA_GATE_ADMIN_TOKEN";
 /// Optional — when absent the agent uses the in-memory store. Contains a secret
 /// (password); never logged (redacted in `Debug`).
 const ENV_PROJECT_DB_URL: &str = "FPA_PROJECT_DB_URL";
+/// Env var: an explicit bearer the fabric-subscribe bridge forwards to the fabric
+/// gateway *instead of* the operator's incoming bearer. Optional. Exists because
+/// fabric verifies RS256 (its own IdP JWKS) while the agent may authenticate the
+/// operator by another path (HS256): when the two IdPs differ, the operator's
+/// token is not directly forwardable. When unset, the bridge forwards the
+/// operator's own bearer unchanged (the deployment where agent and fabric share an
+/// IdP). Contains a secret; never logged (redacted in `Debug`).
+const ENV_FABRIC_BEARER: &str = "FPA_FABRIC_BEARER";
 
 /// Default bind address when `FPA_GATEWAY_ADDR` is unset.
 const DEFAULT_ADDR: &str = "0.0.0.0:8088";
@@ -75,6 +83,11 @@ pub struct GatewayConfig {
     /// Postgres URL for the durable `ProjectStore` (`None` ⇒ in-memory store).
     /// Contains a secret; never logged.
     pub project_db_url: Option<String>,
+    /// Bearer the fabric-subscribe bridge forwards to fabric instead of the
+    /// operator's own bearer (`None` ⇒ forward the operator's bearer unchanged).
+    /// Used when the agent and fabric verify against different IdPs. Contains a
+    /// secret; never logged.
+    pub fabric_bearer: Option<String>,
 }
 
 // Manual Debug redacts the HS256 secret — deriving would leak it in logs/panics.
@@ -101,6 +114,10 @@ impl std::fmt::Debug for GatewayConfig {
             .field(
                 "project_db_url",
                 &self.project_db_url.as_ref().map(|_| "<redacted>"),
+            )
+            .field(
+                "fabric_bearer",
+                &self.fabric_bearer.as_ref().map(|_| "<redacted>"),
             )
             .finish()
     }
@@ -184,6 +201,7 @@ impl GatewayConfig {
             forge_rest_prefix: lookup(ENV_FORGE_REST_PREFIX).filter(|v| !v.trim().is_empty()),
             gate_admin_token: lookup(ENV_GATE_ADMIN_TOKEN).filter(|v| !v.trim().is_empty()),
             project_db_url: lookup(ENV_PROJECT_DB_URL).filter(|v| !v.trim().is_empty()),
+            fabric_bearer: lookup(ENV_FABRIC_BEARER).filter(|v| !v.trim().is_empty()),
         })
     }
 }

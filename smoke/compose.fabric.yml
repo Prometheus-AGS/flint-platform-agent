@@ -54,12 +54,25 @@ services:
     volumes:
       - ./fabric-config/keto.yml:/etc/config/keto/keto.yml:ro
     command: ["serve", "-c", "/etc/config/keto/keto.yml"]
+    ports:
+      - "14466:4466" # read (check) — accessible from host for smoke assertions
+      - "14467:4467" # write — needed by the smoke spec to seed relation tuples
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:4466/health/ready || exit 1"]
       interval: 5s
       timeout: 3s
       retries: 10
       start_period: 10s
+
+  # Serves smoke/dev-idp/jwks.json so fabric's OryIdentityVerifier can verify
+  # RS256 bearers the smoke mints (p12-c001-dev-idp-keys).
+  dev-idp-jwks:
+    image: nginx:alpine
+    volumes:
+      - ./dev-idp/jwks.json:/usr/share/nginx/html/jwks.json:ro
+    # Default nginx serves at :80; expose on a predictable internal port.
+    ports:
+      - "18080:80" # host 18080 (informational — fabric reaches it internally)
 
   fabric-gateway:
     build:
@@ -75,17 +88,16 @@ services:
         condition: service_started
       fabric-postgres:
         condition: service_healthy
+      dev-idp-jwks:
+        condition: service_started
     environment:
       BIND_ADDR: "0.0.0.0:8080"
       GRPC_PORT: "9090"
       IGGY_CONNECTION_STRING: "iggy://iggy:iggy@fabric-iggy:8090"
       KETO_BASE_URL: "http://fabric-keto:4466"
       KETO_NAMESPACE: "default"
-      # Required at config-parse (frf-gateway config.rs: "GATEWAY_JWKS_URL must be set")
-      # even in dev. With DEV_NO_AUTH=true it is not actually fetched — this standalone
-      # fabric has no gate, so a placeholder satisfies the parse. c005 points it at the
-      # real gate's /signing-keys.
-      GATEWAY_JWKS_URL: "http://fabric-gateway:8080/.well-known/jwks.json"
+      # Dev IdP JWKS (p12-c002): fabric verifies RS256 bearers the smoke mints.
+      GATEWAY_JWKS_URL: "http://dev-idp-jwks:80/jwks.json"
       JWT_AUDIENCE: "frf-gateway"
       SFU_MODE: "sovereign"
       RUST_LOG: "info"

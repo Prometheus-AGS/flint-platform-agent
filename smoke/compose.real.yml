@@ -43,8 +43,15 @@ services:
       FPA_FORGE_URL: "http://forge-gateway:8080"
       # agent's own durable ProjectStore:
       FPA_PROJECT_DB_URL: "postgres://postgres:postgres@agent-postgres:5432/postgres"
-      # throwaway HS256 test secret — NOT a real credential.
+      # throwaway HS256 test secret — NOT a real credential. The agent verifies the
+      # operator's INCOMING bearer via this HS256 key (its own identity path).
       FPA_GATE_JWT_KEY: "smoke-hs256-secret-not-a-real-credential"
+      # Fabric verifies RS256 (its dev IdP JWKS), a different IdP than the agent's
+      # HS256. So the /fabric/subscribe bridge forwards THIS long-lived RS256 dev
+      # bearer to fabric instead of the operator's HS256 bearer (p12-c003). It is a
+      # throwaway smoke credential minted from smoke/dev-idp/private-key.pem — see
+      # smoke/dev-idp/README.md. Regenerate with smoke/dev-idp/mint-fabric-bearer.mjs.
+      FPA_FABRIC_BEARER: "${FPA_FABRIC_BEARER:-}"
       RUST_LOG: "info"
     ports:
       - "8088:8088"
@@ -115,23 +122,48 @@ services:
       start_period: 10s
 
   fabric-iggy:
-    image: iggyrs/iggy:latest
+    # Protocol-matched Iggy server built from the SAME fork rev fabric's iggy
+    # CLIENT is locked to (see iggy.Dockerfile). Upstream `iggyrs/iggy:latest`
+    # floats past that protocol → `invalid_command` on sign-in → a real
+    # /fabric/subscribe fails deep in the LogBroker → 502 at the agent bridge.
+    build:
+      context: .
+      dockerfile: iggy.Dockerfile
     environment:
       IGGY_SYSTEM_PATH: "/data"
+      # The fork's server generates a RANDOM root password on first boot (logged
+      # once as "Generated root user password: ...") UNLESS both of these are set
+      # — see core/server/src/bootstrap.rs:create_root_user (`if username.is_ok()
+      # && password.is_ok()` uses the env vars, else falls back to a random
+      # secret). Pin them to iggy/iggy so they match the fabric-gateway
+      # IGGY_CONNECTION_STRING below; otherwise the client's sign-in is rejected
+      # with invalid_credentials (status 42).
+      IGGY_ROOT_USERNAME: "iggy"
+      IGGY_ROOT_PASSWORD: "iggy"
+    # The fork's iggy-server uses the io_uring async runtime, whose
+    # io_uring_setup/enter/register syscalls are blocked by Docker's default
+    # seccomp profile → "Cannot create runtime: Operation not permitted" and the
+    # server panics on boot (exit 101). Unconfined seccomp lets io_uring through.
+    # This is a smoke-only container; unconfined here is acceptable.
+    security_opt:
+      - seccomp:unconfined
     volumes:
       - fabric-iggy-data:/data
     healthcheck:
-      test: ["CMD-SHELL", "iggy --transport tcp --server-address localhost:8090 me 2>/dev/null || exit 0"]
+      test: ["CMD-SHELL", "curl -sf http://localhost:3000/ping || exit 1"]
       interval: 5s
       timeout: 3s
-      retries: 10
-      start_period: 10s
+      retries: 20
+      start_period: 15s
 
   fabric-keto:
     image: oryd/keto:v0.12
     volumes:
       - ./fabric-config/keto.yml:/etc/config/keto/keto.yml:ro
     command: ["serve", "-c", "/etc/config/keto/keto.yml"]
+    ports:
+      - "14466:4466" # read — accessible from host for smoke assertions
+      - "14467:4467" # write — needed by the smoke spec to seed relation tuples
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:4466/health/ready || exit 1"]
       interval: 5s
@@ -139,10 +171,25 @@ services:
       retries: 10
       start_period: 10s
 
+  # Serves smoke/dev-idp/jwks.json so fabric's OryIdentityVerifier can verify
+  # RS256 bearers the smoke mints (p12-c001-dev-idp-keys).
+  dev-idp-jwks:
+    image: nginx:alpine
+    volumes:
+      - ./dev-idp/jwks.json:/usr/share/nginx/html/jwks.json:ro
+    ports:
+      - "18080:80" # host 18080 (informational — fabric reaches it internally)
+
   fabric-gateway:
     build:
       context: ../../flint-realtime-fabric
-      dockerfile: Dockerfile
+      # Smoke-local Dockerfile: fabric's own image build is BROKEN on current
+      # main — routes/admin_ui.rs embeds admin-ui/dist with rust-embed, but
+      # fabric's Dockerfile never copies admin-ui/ into the context, so the
+      # rust-embed derive fails to generate `get()` (E0599). Our override adds a
+      # placeholder admin-ui/dist/index.html before cargo build. See the header
+      # of smoke/fabric-gateway.Dockerfile. Nothing is written into ../flint-realtime-fabric.
+      dockerfile: ../flint-platform-agent/smoke/fabric-gateway.Dockerfile
       args:
         CARGO_FEATURES: dev-endpoints
     depends_on:
@@ -152,19 +199,27 @@ services:
         condition: service_started
       fabric-postgres:
         condition: service_healthy
+      dev-idp-jwks:
+        condition: service_started
     environment:
       BIND_ADDR: "0.0.0.0:8080"
       GRPC_PORT: "9090"
       IGGY_CONNECTION_STRING: "iggy://iggy:iggy@fabric-iggy:8090"
       KETO_BASE_URL: "http://fabric-keto:4466"
       KETO_NAMESPACE: "default"
-      # Real gate signing-keys endpoint (the agent + fabric share the gate).
-      GATEWAY_JWKS_URL: "http://flint-gate:4457/signing-keys"
+      # Dev IdP JWKS: the smoke mints RS256 bearers; fabric verifies them (p12-c002).
+      GATEWAY_JWKS_URL: "http://dev-idp-jwks:80/jwks.json"
       JWT_AUDIENCE: "frf-gateway"
       SFU_MODE: "sovereign"
       RUST_LOG: "info"
       CDC_ENABLED: "false"
-      DEV_NO_AUTH: "true"
+      # DEV_NO_AUTH intentionally UNSET: the realtime-receipt proof runs fabric's
+      # REAL RS256 verification on BOTH the subscribe and publish hops. Under
+      # DEV_NO_AUTH=true the subscribe route discards the forwarded bearer and hands
+      # an empty token to the pipeline, which still calls identity.verify() (there is
+      # no dev bypass in the verifier) → 401. So the smoke mints real RS256 bearers
+      # (dev IdP, verified via GATEWAY_JWKS_URL) for both hops and seeds the matching
+      # Keto tuples (subscribe/publish/view). "Nothing but real stuff" (p12-c003).
     ports:
       - "28080:8080"
       - "29090:9090"
