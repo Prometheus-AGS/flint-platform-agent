@@ -1,0 +1,16 @@
+{
+  "stage": "spec",
+  "nextStage": "plan",
+  "phase": "a2a-task-catalog-writes",
+  "backend": "openspec",
+  "zeespec": "n/a",
+  "artifact": "openspec/changes/p14-c001-mcp-tool-call/proposal.md",
+  "changes": [
+    "p14-c001-mcp-tool-call",
+    "p14-c002-application-deploy-refused-write"
+  ],
+  "summaryForNext": "2 OpenSpec changes created and validated (openspec validate: both valid). p14-c001 (impl, GW1+GW3+GW4): catalog mcp.tool.call → TargetPort::Mcp / operator floor / real {name,arguments} schema (SCHEMA_MCP_TOOL_CALL); split the flat TargetPort::Mcp runner arm into dispatch_mcp (list→list_tools, call→call_tool, unknown-kind→clean Downstream, no list_tools fallback); parse_tool_call helper; extend every_mcp_catalog_kind_is_dispatched to both kinds; tests for invoke-passthrough, sub-operator-denied-before-port, unknown-kind-refusal, and arguments-not-logged; document non-idempotent posture. NO new port (McpClient::call_tool + fpa-mcp adapter already real). p14-c002 (docs/honest-refusal, GW2): application.deploy STAYS a declared refused write — tighten the dispatch_gate refusal message to name the missing gate admin write contract (GateAdmin=list_routes only), add a regression test asserting it still refuses (never Ok) + message marker, document the 6-step gate-write dependency in spec + a memory. NO catalog change, NO new port, NO sibling edit. Ordering for plan: c001 first (real deliverable), c002 second (small message+docs). Test budget: batch BOTH into ONE cargo test -p fpa-app run (≤3 for phase). c002 is <3 files / message+docs → artifact-refiner QA may be skipped.",
+  "openQuestions": [],
+  "createdBy": "kbd-spec",
+  "updatedAt": "2026-07-08T11:20:00Z"
+}

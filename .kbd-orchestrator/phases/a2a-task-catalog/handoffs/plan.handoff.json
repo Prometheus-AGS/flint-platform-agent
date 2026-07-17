@@ -1,0 +1,14 @@
+{
+  "stage": "plan",
+  "completedAt": "2026-07-08T08:36:00Z",
+  "outputs": [
+    "plan.md",
+    "openspec/changes/p13-c001-split-task-runner/",
+    "openspec/changes/p13-c002-forge-describe-name/",
+    "openspec/changes/p13-c003-gate-mcp-read-kinds/"
+  ],
+  "nextStage": "execute",
+  "summaryForNext": "3 OpenSpec changes seeded (phase p13, all openspec-validated). ORDER IS LOAD-BEARING — apply strictly c001 → c002 → c003; c002 and c003 both depend on the c001 file split. c001-split-task-runner: MECHANICAL, behavior-preserving — split the 828-line task_runner.rs (prod = lines 1-341, #[cfg(test)] mod tests = 342-828) into task_runner/{mod.rs, tests.rs}; mod.rs declares `#[cfg(test)] mod tests;`, tests.rs uses `use super::*;`. This gets both files <500 (the CI gate) BEFORE arms are added. c002-forge-describe-name (G1 REAL BUG): dispatch_forge passes hardcoded \"<unspecified>\" to describe_table instead of the validated `table` input — thread the real name (mirror dispatch_store's project_id parse), return AppError::InvalidInput on empty; extend FakeForge to CAPTURE the name and add an argument-asserting test (the existing test only checks the port was called). c003-gate-mcp-read-kinds (G2+G3): add two CATALOG entries — gate.route.list (TargetPort::Gate, required_role OPERATOR not viewer — routes reveal topology; SCHEMA_EMPTY) and mcp.tool.list (TargetPort::Mcp, viewer, SCHEMA_EMPTY); dispatch already exists for both (dispatch_gate calls list_routes for non-writes; TargetPort::Mcp => list_tools arm); register gate.route.list in GATE_READ_KINDS (currently empty &[]) so every_gate_catalog_kind_is_classified passes; ADD every_mcp_catalog_kind_is_dispatched guard (MCP_KINDS = &[\"mcp.tool.list\"]). NO gateway edits needed — both surfaces (a2a.rs submit, mcp.rs tool_definitions) iterate catalog::CATALOG. Resolved open questions: gate.route.list role = operator; runner split = tests-only extraction; Mcp dispatch guard = added. POSTURE: agent-only (no sibling repo, no fabric), reads-only (mcp.call_tool + forge.create_entity stay OUT of catalog; application.deploy stays refused), no new ports (all three seams exist), flint-gate the only auth boundary (never call Ory), no unwrap/expect in lib, #[non_exhaustive]/newtype preserved, never log secrets. Implementation-first: implement c001-c003 fully, then batch tests into ≤3 cargo test runs total (final milestone in c003 task 4.3); cargo check -p fpa-app at section boundaries; clippy --all-targets -D warnings + fmt before done.",
+  "skipped": false,
+  "skipReason": null
+}

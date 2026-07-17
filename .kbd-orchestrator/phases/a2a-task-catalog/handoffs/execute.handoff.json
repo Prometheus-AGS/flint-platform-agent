@@ -1,0 +1,12 @@
+{
+  "stage": "execute",
+  "completedAt": "2026-07-08T08:46:00Z",
+  "outputs": [
+    "execution.md",
+    "progress.json"
+  ],
+  "nextStage": "reflect",
+  "summaryForNext": "Backend = openspec. Dispatch contract in execution.md. 3 changes to apply strictly in order via /kbd-apply (NOT bare /opsx:apply — it has no KBD hooks/progress/waypoint): c001-split-task-runner (8 tasks, QA-skip mechanical) → c002-forge-describe-name (10 tasks, QA-skip <3 files, depends c001) → c003-gate-mcp-read-kinds (13 tasks, QA-RUN, depends c001). Per change: /kbd-apply walks tasks.md firing task:before/after → mark DONE → QA gate (skip c001/c002, run artifact-refiner c003) → /opsx:verify → /opsx:archive. Implementation-first (operator workflow OVERRIDES test-as-you-go): implement all 3 fully first, cargo check -p fpa-app only at section boundaries, ≤3 cargo test runs total for the phase — the single required test milestone is c003 task 4.3 (cargo test -p fpa-app) which covers the c001 moved tests + c002 argument-asserting test + c003 catalog/guard tests in one run. Before done: clippy --workspace --all-targets -D warnings + fmt clean. Invariants: agent-only (no sibling repo edit, no fabric), reads-only (mcp.call_tool/forge.create_entity out, application.deploy refused), no new ports, flint-gate the only auth boundary (never Ory), no unwrap/expect in lib, #[non_exhaustive]/newtype preserved, no file >500 lines (why c001 is first), never log secrets, edition 2024/toolchain 1.93. active_change = p13-c001-split-task-runner; changes_completed 0/3. On completion of all 3 (verified+archived) proceed to /kbd-reflect.",
+  "skipped": false,
+  "skipReason": null
+}

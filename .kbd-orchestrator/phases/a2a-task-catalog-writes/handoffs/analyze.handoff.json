@@ -1,0 +1,11 @@
+{
+  "stage": "analyze",
+  "nextStage": "spec",
+  "phase": "a2a-task-catalog-writes",
+  "skipped": true,
+  "artifact": null,
+  "summaryForNext": "Analyze deliberately SKIPPED — no external library/framework research is warranted. Assessment established ground truth by direct in-repo inspection: both goals wire against ports that ALREADY exist. GW1 (mcp.tool.call) reuses McpClient::call_tool + its real JSON-RPC adapter (fpa-mcp) end-to-end — no library to adopt, no build-vs-adopt decision. GW2 (real application.deploy write) is BLOCKED by a MISSING VERIFIED GATE ADMIN WRITE CONTRACT, not by any adoptable library — the remedy is verifying gate's own source contract in a later phase, not researching a dependency now. There is no stack choice and no candidate set to evaluate. Spec carries the assessment's 2-change recommendation: (c001) impl = mcp.tool.call catalog entry (Mcp / operator floor / real {name, arguments} schema) + dispatch_mcp runner split + clean unknown-mcp-kind refusal + arguments-not-logged test + non-idempotent doc; (c002) docs/honest-refusal = application.deploy reframed as a declared refused write with the gate-write dependency documented (never faked). No library-candidates.json produced (skip).",
+  "reason": "agent-owned wiring against existing ports (McpClient::call_tool + adapter already real); GW2 blocker is a missing verified gate contract, not an adoptable library; no external research needed",
+  "createdBy": "kbd-analyze",
+  "updatedAt": "2026-07-08T11:10:01Z"
+}

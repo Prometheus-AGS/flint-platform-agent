@@ -1,0 +1,15 @@
+{
+  "stage": "plan",
+  "nextStage": "execute",
+  "phase": "a2a-task-catalog-writes",
+  "backend": "openspec",
+  "artifact": "plan.md",
+  "changesOrdered": [
+    "p14-c001-mcp-tool-call",
+    "p14-c002-application-deploy-refused-write"
+  ],
+  "firstChange": "p14-c001-mcp-tool-call",
+  "summaryForNext": "2 changes ordered c001 → c002. Ordering is diff-hygiene, not dependency: both edit crates/fpa-app/src/task_runner/mod.rs, so the substantive dispatch_mcp split (c001) lands before the one-line application.deploy refusal-message change (c002) for a single coherent pass over the runner. progress.json initialized: changes_total=2, changes_completed=0, nextPendingChange=p14-c001-mcp-tool-call. TEST BUDGET: ONE cargo test -p fpa-app run covers BOTH changes' assertions (catalog invariants, extended Mcp dispatch guard, invoke-passthrough, sub-operator-denied-before-port, unknown-kind-refusal, arguments-not-logged, application.deploy still-refuses+marker), then clippy+fmt at phase end; reserve the other 2 runs for real re-runs. QA: c001 runs artifact-refiner (3 files, behavioral); c002 may skip (<3 files, message+docs). Guardrails: mcp.tool.call role=operator floor; unknown Mcp kind→clean Downstream never list_tools fallback; application.deploy never returns Ok; no new port; no sibling edit; no unwrap/expect in libs; ≤500 lines/file; never log arguments/tokens/claims. No library-candidates (Analyze skipped) — both reuse existing ports.",
+  "createdBy": "kbd-plan",
+  "updatedAt": "2026-07-08T11:26:00Z"
+}

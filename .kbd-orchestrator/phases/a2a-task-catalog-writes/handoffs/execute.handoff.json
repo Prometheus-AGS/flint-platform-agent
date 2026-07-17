@@ -1,0 +1,15 @@
+{
+  "stage": "execute",
+  "nextStage": "reflect",
+  "phase": "a2a-task-catalog-writes",
+  "backend": "openspec",
+  "artifact": "execution.md",
+  "changesOrdered": [
+    "p14-c001-mcp-tool-call",
+    "p14-c002-application-deploy-refused-write"
+  ],
+  "firstChange": "p14-c001-mcp-tool-call",
+  "summaryForNext": "Backend = OpenSpec (both p14 changes authored + validated). execution.md records the dispatch contract: c001 adds SCHEMA_MCP_TOOL_CALL + mcp.tool.call (TargetPort::Mcp / operator floor), splits the flat TargetPort::Mcp runner arm into dispatch_mcp (list->list_tools, call->call_tool via parse_tool_call, unknown->clean Downstream never list_tools fallback), extends every_mcp_catalog_kind_is_dispatched to both kinds, adds invoke-passthrough/sub-operator-denied/unknown-kind-refusal/arguments-not-logged tests, documents non-idempotent posture. c002 tightens the dispatch_gate application.deploy refusal message to name the missing gate admin write contract (still Err, never Ok) + regression test + memory. BLOCKING PREP: task_runner/tests.rs is 597 lines (over the 500 limit) BEFORE p14 tests -> convert to a directory module tests/{mod.rs, mcp.rs} so both land <500 and the MCP tests get a home. Test budget: ONE cargo test -p fpa-app covers BOTH, then clippy+fmt. QA: c001 runs artifact-refiner; c002 may skip (<3 files). No new port; no sibling edit.",
+  "createdBy": "kbd-execute",
+  "updatedAt": "2026-07-08T11:31:00Z"
+}

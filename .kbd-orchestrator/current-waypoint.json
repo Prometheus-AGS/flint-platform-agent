@@ -1,15 +1,15 @@
 {
-  "phase": "realtime-receipt",
-  "previousPhase": "forge-gateway-live",
+  "phase": "a2a-task-catalog-writes",
+  "previousPhase": "a2a-task-catalog",
   "change": null,
-  "status": "reflect_complete",
-  "currentTask": "Phase realtime-receipt complete-with-documented-upstream-block: 2 MET / 1 PARTIAL. Receipt blocked on Prometheus-AGS/flint-realtime-fabric#2. Committed+pushed on feat/p12-realtime-receipt.",
-  "nextPendingChange": null,
-  "sourceTool": "unknown",
-  "exactNextCommand": "/kbd-next-phase",
-  "recommendedNextPhase": "realtime-receipt-unblock",
+  "status": "execute_complete",
+  "currentTask": "Execution contract written (execution.md): OpenSpec backend, 2 changes ordered c001 → c002. c001 = catalog mcp.tool.call (TargetPort::Mcp/operator) + dispatch_mcp split (parse_tool_call, unknown-kind clean Downstream, no list_tools fallback) + extended MCP guard + invoke/denied/unknown/args-not-logged tests + non-idempotent doc; c002 = tighten dispatch_gate application.deploy refusal message (still Err, never Ok) + regression test + memory. BLOCKING PREP: task_runner/tests.rs is 597 lines (>500) — split into tests/{mod.rs, mcp.rs} before adding p14 tests. ONE cargo test -p fpa-app covers both, then clippy+fmt. Next: /kbd-apply drives p14-c001-mcp-tool-call tasks first.",
+  "nextPendingChange": "p14-c001-mcp-tool-call",
+  "sourceTool": "kbd-execute",
+  "exactNextCommand": "/kbd-apply",
+  "recommendedNextPhase": null,
   "parentPhase": null,
   "childPhases": [],
   "childPointer": null,
-  "updatedAt": "2026-07-08T08:10:00Z"
+  "updatedAt": "2026-07-08T11:31:00Z"
 }

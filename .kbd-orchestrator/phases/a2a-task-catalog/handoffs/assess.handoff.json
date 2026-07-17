@@ -1,0 +1,11 @@
+{
+  "stage": "assess",
+  "completedAt": "2026-07-08T08:20:00Z",
+  "outputs": [
+    "assessment.md"
+  ],
+  "nextStage": "plan",
+  "summaryForNext": "ACTIONABLE — 3 concrete gaps, all in fpa-app/src/{catalog.rs, task_runner.rs}; both protocol surfaces (a2a.rs submit, mcp.rs tool_definitions) already read catalog::CATALOG so NO gateway edits are needed for new kinds. G1: forge.table.describe is a real bug — task_runner.rs:154 passes hardcoded \"<unspecified>\" and discards the validated `name`; the existing test only asserts the port was called, not with what. G2: dispatch_gate ALREADY calls list_routes for reads (not a stub), but no catalog kind targets Gate-read and GATE_READ_KINDS is an empty placeholder waiting for it — add `gate.route.list`. G3: TargetPort::Mcp => list_tools() dispatch exists but is dead (no mcp catalog kind) — add `mcp.tool.list`. Read-vs-write honesty is already clean everywhere (keep it). BLOCKING CONSTRAINT: task_runner.rs is 828 lines, already OVER the 500-line CI gate — Plan MUST split it into a directory module FIRST (recommend extracting #[cfg(test)] fakes/tests into task_runner/tests.rs, smallest diff) before adding arms. Draft ordering: c001 split runner; c002 fix G1 + argument-asserting test; c003 add gate.route.list + mcp.tool.list + update GATE_READ_KINDS + guards. OPEN Qs: (1) role for gate.route.list — viewer (default, matches forge.table.list) vs operator (routes reveal topology); (2) runner-split shape; (3) add every_mcp_catalog_kind_is_dispatched guard for symmetry. flint-gate stays the only auth boundary; reads-only this phase; no new ports (all three seams exist).",
+  "skipped": false,
+  "skipReason": null
+}

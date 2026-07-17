@@ -1,0 +1,14 @@
+{
+  "stage": "assess",
+  "nextStage": "analyze",
+  "phase": "a2a-task-catalog-writes",
+  "artifact": "assessment.md",
+  "summaryForNext": "Two seeded goals split on inspection. GW1 (mcp.tool.call) is fully implementable with NO new port — McpClient::call_tool + its JSON-RPC adapter are real end-to-end; only a catalog entry + a dispatch_mcp runner split (the Mcp arm is currently flat list_tools) + schema + tests are missing. GW2 (real application.deploy write) is BLOCKED and must NOT be faked: GateAdmin has only list_routes, the adapter only does GET /routes, and no gate admin WRITE contract is verified — so application.deploy stays a declared refused write with the dependency documented (it already refuses cleanly, it is not a {}-stub). GW3/GW4 harden around GW1 (clean unknown-mcp-kind refusal + a not-logged-arguments test). Recommendation: 2 changes (1 impl: mcp.tool.call; 1 docs/honest-refusal: application.deploy reframe). mcp.tool.call role = operator floor. Analyze can --skip (no external research; agent-owned wiring against existing ports).",
+  "openQuestions": [
+    "Q1 mcp.tool.call role operator vs admin — defaulting operator (recommended)",
+    "Q2 single vs multi downstream MCP server in input — single-endpoint this phase (adapter is single-endpoint; YAGNI)",
+    "Q3 tighten GW2 refusal message to name missing gate write contract — recommended yes, cheap"
+  ],
+  "createdBy": "kbd-assess",
+  "updatedAt": "2026-07-08T11:05:00Z"
+}
