@@ -64,6 +64,11 @@ const SCHEMA_PROJECT_CREATE: &str = r#"{"type":"object","required":["name"],"pro
 /// Schema for `application.define`: a required `project_id` and an `application`
 /// object (deserialized to an `ApplicationDef` in the runner).
 const SCHEMA_APPLICATION_DEFINE: &str = r#"{"type":"object","required":["project_id","application"],"properties":{"project_id":{"type":"string"},"application":{"type":"object"}}}"#;
+/// Schema for `mcp.tool.call`: the downstream tool `name` and an `arguments`
+/// object forwarded verbatim to the MCP client. `arguments` is opaque (any object)
+/// — the target server owns its own tool schema; validating it here would duplicate
+/// (and drift from) that contract (p14-c001).
+const SCHEMA_MCP_TOOL_CALL: &str = r#"{"type":"object","required":["name","arguments"],"properties":{"name":{"type":"string"},"arguments":{"type":"object"}}}"#;
 
 /// The seeded administrative task catalog.
 ///
@@ -125,6 +130,34 @@ pub const CATALOG: &[CatalogEntry] = &[
         required_role: "viewer",
         description: "Check realtime fabric liveness.",
         input_schema_json: SCHEMA_EMPTY,
+    },
+    CatalogEntry {
+        kind: "gate.route.list",
+        target: TargetPort::Gate,
+        // operator, not viewer: gate routes reveal operational topology (upstreams,
+        // auth pipelines, streaming config) — an information-disclosure surface, so
+        // the read defaults its role up (p13-c003).
+        required_role: "operator",
+        description: "List flint-gate routes (via the gate admin-port adapter).",
+        input_schema_json: SCHEMA_EMPTY,
+    },
+    CatalogEntry {
+        kind: "mcp.tool.list",
+        target: TargetPort::Mcp,
+        // viewer: a tool listing is benign discovery metadata.
+        required_role: "viewer",
+        description: "List tools exposed by downstream MCP servers the agent composes.",
+        input_schema_json: SCHEMA_EMPTY,
+    },
+    CatalogEntry {
+        kind: "mcp.tool.call",
+        target: TargetPort::Mcp,
+        // operator, not viewer: this is an *invoke*, not a read. An invoke floors at
+        // operator regardless of the read role rules — it can act on downstream
+        // systems (Base Rule 33). Non-idempotent: a retried call may act twice.
+        required_role: "operator",
+        description: "Invoke a tool on a downstream MCP server the agent composes.",
+        input_schema_json: SCHEMA_MCP_TOOL_CALL,
     },
 ];
 

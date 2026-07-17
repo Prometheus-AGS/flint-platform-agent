@@ -22,6 +22,9 @@ uuid = { workspace = true }
 [dev-dependencies]
 # Empty EventStream for the FakeFabric test double (FabricClient::subscribe).
 futures.workspace = true
+# Capturing tracing subscriber — asserts the runner never logs MCP tool-call
+# `arguments` (p14-c001). Already a workspace dependency; enabled here for tests.
+tracing-subscriber.workspace = true
 
 [lints]
 workspace = true
